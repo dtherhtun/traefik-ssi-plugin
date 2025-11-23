@@ -1,7 +1,7 @@
 displayName: SSI Processor
 type: middleware
 
-import: github.com/detharhtun/traefik-ssi-plugin
+import: github.com/dtherhtun/traefik-ssi-plugin
 
 summary: 'Server Side Includes (SSI) processor for Traefik'
 
