@@ -1,13 +1,8 @@
-displayName: SSI Processor
+displayName: SSI Plugin
 type: middleware
-
-import: github.com/dtherhtun/traefik-ssi-plugin
-
-summary: 'Server Side Includes (SSI) processor for Traefik'
-
+import: github.com/dtherhtun/traefik-plugin-ssi
+summary: Server Side Includes for Traefik
 testData:
-  rootPath: /var/www/html
-  extensions:
-    - .shtml
-    - .html
-  enableVirtual: true
+  enabled: true
+  types:
+    - text/html
