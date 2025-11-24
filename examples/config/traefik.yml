@@ -1,0 +1,49 @@
+# Traefik Static Configuration
+# This file should be mounted to /etc/traefik/traefik.yml
+
+# Global configuration
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+# Log configuration
+log:
+  level: DEBUG
+  format: common
+
+# Access logs
+accessLog:
+  format: common
+
+# API and Dashboard
+api:
+  dashboard: true
+  insecure: true  # WARNING: Only for development! Disable in production
+
+# Entry Points
+entryPoints:
+  web:
+    address: ":80"
+
+  # Uncomment for HTTPS
+  # websecure:
+  #   address: ":443"
+
+# Providers
+providers:
+  # File provider for dynamic configuration
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# Experimental Features - Required for local plugins
+experimental:
+  localPlugins:
+    ssi:
+      moduleName: github.com/dtherhtun/ssi
+
+# Uncomment to enable metrics
+# metrics:
+#   prometheus:
+#     addEntryPointsLabels: true
+#     addServicesLabels: true

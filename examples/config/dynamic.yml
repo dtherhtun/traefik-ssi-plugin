@@ -1,0 +1,26 @@
+http:
+  middlewares:
+    ssi-processor:
+      plugin:
+        ssi:
+          enabled: true
+          debug: true
+          types:
+            - text/html
+            - application/xhtml+xml
+          minFileSize: 0
+
+  routers:
+    web-router:
+      rule: "PathPrefix(`/`)"
+      service: fileserver-service
+      middlewares:
+        - ssi-processor
+      entryPoints:
+        - web
+
+  services:
+    fileserver-service:
+      loadBalancer:
+        servers:
+          - url: http://fileserver:8080

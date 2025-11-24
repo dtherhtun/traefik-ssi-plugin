@@ -1,6 +1,6 @@
 displayName: SSI Plugin
 type: middleware
-import: github.com/dtherhtun/traefik-plugin-ssi
+import: github.com/dtherhtun/ssi
 summary: Server Side Includes for Traefik
 testData:
   enabled: true

@@ -1,4 +1,4 @@
-package traefik_plugin_ssi
+package ssi
 
 import (
 	"bytes"
@@ -44,6 +44,8 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 		config.Types = []string{"text/html"}
 	}
 
+	fmt.Println("SSI Enabled")
+
 	return &SSIPlugin{
 		next:   next,
 		name:   name,
@@ -86,6 +88,7 @@ func (p *SSIPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		p.next.ServeHTTP(rw, req)
 		return
 	}
+	fmt.Println("SSI Enabled2")
 
 	buf := p.bufferPool.Get().(*bytes.Buffer)
 	buf.Reset()
@@ -101,6 +104,7 @@ func (p *SSIPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	p.next.ServeHTTP(customRW, req)
 
 	contentType := customRW.Header().Get("Content-Type")
+	fmt.Printf("SSI ServeHTTP: %s, %s\n", !p.shouldProcess(contentType, buf.Len()), contentType)
 	if !p.shouldProcess(contentType, buf.Len()) {
 		rw.WriteHeader(customRW.statusCode)
 		_, _ = io.Copy(rw, buf)
