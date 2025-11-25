@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -22,10 +23,12 @@ type Config struct {
 	Concurrent      bool     `json:"concurrent,omitempty"`
 	CacheTTL        int      `json:"cacheTTL,omitempty"`
 	IncludeTimeout  int      `json:"includeTimeout,omitempty"`
-	MaxCacheSize    int      `json:"maxCacheSize,omitempty"`    // max items in cache
-	CircuitBreaker  bool     `json:"circuitBreaker,omitempty"`  // enable circuit breaker
-	CBFailThreshold int      `json:"cbFailThreshold,omitempty"` // failures before opening
-	CBResetTimeout  int      `json:"cbResetTimeout,omitempty"`  // seconds before retry
+	MaxCacheSize    int      `json:"maxCacheSize,omitempty"`
+	CircuitBreaker  bool     `json:"circuitBreaker,omitempty"`
+	CBFailThreshold int      `json:"cbFailThreshold,omitempty"`
+	CBResetTimeout  int      `json:"cbResetTimeout,omitempty"`
+	MaxBodySize     int64    `json:"maxBodySize,omitempty"`
+	MaxConcurrent   int      `json:"maxConcurrent,omitempty"`
 }
 
 func CreateConfig() *Config {
@@ -36,27 +39,26 @@ func CreateConfig() *Config {
 		Silent:          false,
 		LastModified:    false,
 		Concurrent:      true,
-		CacheTTL:        300, // 5 minutes default
-		IncludeTimeout:  5,   // 5 seconds per include
+		CacheTTL:        300,
+		IncludeTimeout:  5,
 		MaxCacheSize:    1000,
 		CircuitBreaker:  true,
 		CBFailThreshold: 5,
 		CBResetTimeout:  60,
+		MaxBodySize:     10485760, // 10MB
+		MaxConcurrent:   100,
 	}
 }
 
-// Cache entry with expiration
 type cacheEntry struct {
 	data      []byte
 	expiresAt time.Time
 }
 
-// Circuit breaker state
 type circuitState struct {
-	failures    int
-	lastFailure time.Time
-	isOpen      bool
-	mu          sync.RWMutex
+	failures    int32
+	lastFailure int64
+	isOpen      int32
 }
 
 type SSIPlugin struct {
@@ -66,12 +68,10 @@ type SSIPlugin struct {
 	ssiRegex       *regexp.Regexp
 	includeRegex   *regexp.Regexp
 	bufferPool     *sync.Pool
-	httpClient     *http.Client
-	includeClient  *http.Client // Separate client for includes with different timeout
+	includeClient  *http.Client
 	cache          *sync.Map
-	cacheSize      int32 // Atomic counter for cache size
-	cacheMu        sync.RWMutex
-	circuitBreaker *sync.Map // map[string]*circuitState
+	cacheSize      int32
+	circuitBreaker *sync.Map
 }
 
 func New(ctx context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
@@ -94,35 +94,25 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 	if config.CBResetTimeout == 0 {
 		config.CBResetTimeout = 60
 	}
-
-	// Main client for proxy traffic
-	mainClient := &http.Client{
-		Timeout: 30 * time.Second,
-		Transport: &http.Transport{
-			MaxIdleConns:        100,
-			MaxIdleConnsPerHost: 50,
-			MaxConnsPerHost:     50,
-			IdleConnTimeout:     90 * time.Second,
-			DisableCompression:  false,
-		},
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= 10 {
-				return fmt.Errorf("too many redirects")
-			}
-			return nil
-		},
+	if config.MaxBodySize == 0 {
+		config.MaxBodySize = 10485760
+	}
+	if config.MaxConcurrent == 0 {
+		config.MaxConcurrent = 100
 	}
 
-	// Separate client for SSI includes with shorter timeout
 	includeClient := &http.Client{
 		Timeout: time.Duration(config.IncludeTimeout) * time.Second,
 		Transport: &http.Transport{
-			MaxIdleConns:        200,
-			MaxIdleConnsPerHost: 100,
-			MaxConnsPerHost:     100,
-			IdleConnTimeout:     90 * time.Second,
-			DisableCompression:  false,
-			DisableKeepAlives:   false,
+			MaxIdleConns:          200,
+			MaxIdleConnsPerHost:   100,
+			MaxConnsPerHost:       100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+			DisableCompression:    false,
+			DisableKeepAlives:     false,
+			ForceAttemptHTTP2:     true,
 		},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 5 {
@@ -138,7 +128,6 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 		config:         config,
 		ssiRegex:       regexp.MustCompile(`<!--#\s*(\w+)\s+([^>]+?)\s*-->`),
 		includeRegex:   regexp.MustCompile(`(\w+)="([^"]+)"`),
-		httpClient:     mainClient,
 		includeClient:  includeClient,
 		cache:          &sync.Map{},
 		circuitBreaker: &sync.Map{},
@@ -149,7 +138,6 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 		},
 	}
 
-	// Start cache cleanup goroutine
 	if config.CacheTTL > 0 {
 		go plugin.cacheCleanup(ctx)
 	}
@@ -157,9 +145,8 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 	return plugin, nil
 }
 
-// Cleanup expired cache entries periodically
 func (p *SSIPlugin) cacheCleanup(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(p.config.CacheTTL) * time.Second)
+	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
 	for {
@@ -172,6 +159,7 @@ func (p *SSIPlugin) cacheCleanup(ctx context.Context) {
 				if entry, ok := value.(*cacheEntry); ok {
 					if now.After(entry.expiresAt) {
 						p.cache.Delete(key)
+						atomic.AddInt32(&p.cacheSize, -1)
 					}
 				}
 				return true
@@ -226,7 +214,6 @@ func (p *SSIPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Get content before returning buffer to pool
 	content := make([]byte, buf.Len())
 	copy(content, buf.Bytes())
 	p.bufferPool.Put(buf)
@@ -283,6 +270,7 @@ func (p *SSIPlugin) processSSIConcurrent(req *http.Request, content []byte) ([]b
 
 	var wg sync.WaitGroup
 	repls := make([]replacement, len(matches))
+	semaphore := make(chan struct{}, p.config.MaxConcurrent)
 
 	for i, match := range matches {
 		start, end := match[0], match[1]
@@ -304,6 +292,9 @@ func (p *SSIPlugin) processSSIConcurrent(req *http.Request, content []byte) ([]b
 			wg.Add(1)
 			go func(idx int, params map[string]string, start, end int) {
 				defer wg.Done()
+				semaphore <- struct{}{}
+				defer func() { <-semaphore }()
+
 				data := p.handleInclude(req, params)
 				repls[idx] = replacement{start: start, end: end, data: data}
 			}(i, params, start, end)
@@ -328,6 +319,7 @@ func (p *SSIPlugin) processSSIConcurrent(req *http.Request, content []byte) ([]b
 		lastIndex = r.end
 	}
 	result.Write(content[lastIndex:])
+
 	return result.Bytes(), nil
 }
 
@@ -395,7 +387,6 @@ func (p *SSIPlugin) processDirective(directive string, req *http.Request, params
 	}
 }
 
-// Check circuit breaker state
 func (p *SSIPlugin) checkCircuitBreaker(uri string) bool {
 	if !p.config.CircuitBreaker {
 		return true
@@ -407,22 +398,18 @@ func (p *SSIPlugin) checkCircuitBreaker(uri string) bool {
 	}
 
 	state := val.(*circuitState)
-	state.mu.RLock()
-	defer state.mu.RUnlock()
-
-	if !state.isOpen {
+	if atomic.LoadInt32(&state.isOpen) == 0 {
 		return true
 	}
 
-	// Check if we should try again
-	if time.Since(state.lastFailure) > time.Duration(p.config.CBResetTimeout)*time.Second {
+	lastFailure := atomic.LoadInt64(&state.lastFailure)
+	if time.Since(time.Unix(lastFailure, 0)) > time.Duration(p.config.CBResetTimeout)*time.Second {
 		return true
 	}
 
 	return false
 }
 
-// Record circuit breaker failure
 func (p *SSIPlugin) recordFailure(uri string) {
 	if !p.config.CircuitBreaker {
 		return
@@ -431,19 +418,18 @@ func (p *SSIPlugin) recordFailure(uri string) {
 	val, _ := p.circuitBreaker.LoadOrStore(uri, &circuitState{})
 	state := val.(*circuitState)
 
-	state.mu.Lock()
-	defer state.mu.Unlock()
+	failures := atomic.AddInt32(&state.failures, 1)
+	atomic.StoreInt64(&state.lastFailure, time.Now().Unix())
 
-	state.failures++
-	state.lastFailure = time.Now()
-
-	if state.failures >= p.config.CBFailThreshold {
-		state.isOpen = true
-		log.Printf("[SSI] Circuit breaker opened for %s after %d failures", uri, state.failures)
+	if failures >= int32(p.config.CBFailThreshold) {
+		if atomic.CompareAndSwapInt32(&state.isOpen, 0, 1) {
+			if !p.config.Silent {
+				log.Printf("[SSI] Circuit breaker opened for %s after %d failures", uri, failures)
+			}
+		}
 	}
 }
 
-// Record circuit breaker success
 func (p *SSIPlugin) recordSuccess(uri string) {
 	if !p.config.CircuitBreaker {
 		return
@@ -455,15 +441,19 @@ func (p *SSIPlugin) recordSuccess(uri string) {
 	}
 
 	state := val.(*circuitState)
-	state.mu.Lock()
-	defer state.mu.Unlock()
+	wasOpen := atomic.LoadInt32(&state.isOpen)
 
-	if state.isOpen {
-		log.Printf("[SSI] Circuit breaker closed for %s", uri)
+	if atomic.CompareAndSwapInt32(&state.isOpen, 1, 0) {
+		if !p.config.Silent {
+			log.Printf("[SSI] Circuit breaker closed for %s", uri)
+		}
+		atomic.StoreInt32(&state.failures, 0)
+	} else if wasOpen == 0 {
+		failures := atomic.LoadInt32(&state.failures)
+		if failures > 0 {
+			atomic.AddInt32(&state.failures, -1)
+		}
 	}
-
-	state.failures = 0
-	state.isOpen = false
 }
 
 func (p *SSIPlugin) handleInclude(req *http.Request, params map[string]string) []byte {
@@ -479,7 +469,6 @@ func (p *SSIPlugin) handleInclude(req *http.Request, params map[string]string) [
 		return p.errorMessage("include: no file or virtual specified")
 	}
 
-	// Build full URL for caching
 	cacheKey := uri
 	if isVirtual {
 		scheme := "http"
@@ -489,7 +478,6 @@ func (p *SSIPlugin) handleInclude(req *http.Request, params map[string]string) [
 		cacheKey = fmt.Sprintf("%s://%s%s", scheme, req.Host, uri)
 	}
 
-	// Check circuit breaker
 	if !p.checkCircuitBreaker(cacheKey) {
 		return p.errorMessage(fmt.Sprintf("include: circuit breaker open for %s", uri))
 	}
@@ -500,12 +488,11 @@ func (p *SSIPlugin) handleInclude(req *http.Request, params map[string]string) [
 			if time.Now().Before(entry.expiresAt) {
 				return entry.data
 			}
-			// Expired, remove it
 			p.cache.Delete(cacheKey)
+			atomic.AddInt32(&p.cacheSize, -1)
 		}
 	}
 
-	// Fetch content
 	subReq, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		p.recordFailure(cacheKey)
@@ -536,7 +523,8 @@ func (p *SSIPlugin) handleInclude(req *http.Request, params map[string]string) [
 		return p.errorMessage(fmt.Sprintf("include: status %d", resp.StatusCode))
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	limitedReader := io.LimitReader(resp.Body, p.config.MaxBodySize)
+	body, err := io.ReadAll(limitedReader)
 	if err != nil {
 		p.recordFailure(cacheKey)
 		return p.errorMessage(fmt.Sprintf("include: failed to read response: %v", err))
@@ -544,13 +532,16 @@ func (p *SSIPlugin) handleInclude(req *http.Request, params map[string]string) [
 
 	p.recordSuccess(cacheKey)
 
-	// Cache the result
 	if p.config.CacheTTL > 0 {
-		entry := &cacheEntry{
-			data:      body,
-			expiresAt: time.Now().Add(time.Duration(p.config.CacheTTL) * time.Second),
+		currentSize := atomic.LoadInt32(&p.cacheSize)
+		if currentSize < int32(p.config.MaxCacheSize) {
+			entry := &cacheEntry{
+				data:      body,
+				expiresAt: time.Now().Add(time.Duration(p.config.CacheTTL) * time.Second),
+			}
+			p.cache.Store(cacheKey, entry)
+			atomic.AddInt32(&p.cacheSize, 1)
 		}
-		p.cache.Store(cacheKey, entry)
 	}
 
 	return body
