@@ -5,6 +5,7 @@ http:
         ssi:
           enabled: true
           debug: true
+          concurrent: true
           types:
             - text/html
             - application/xhtml+xml

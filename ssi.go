@@ -18,6 +18,7 @@ type Config struct {
 	MinFileSize  int      `json:"minFileSize,omitempty"`
 	Silent       bool     `json:"silent,omitempty"`
 	LastModified bool     `json:"lastModified,omitempty"`
+	Concurrent   bool     `json:"concurrent,omitempty"`
 }
 
 func CreateConfig() *Config {
@@ -27,6 +28,7 @@ func CreateConfig() *Config {
 		MinFileSize:  0,
 		Silent:       false,
 		LastModified: false,
+		Concurrent:   false,
 	}
 }
 
@@ -43,8 +45,6 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 	if config.Types == nil || len(config.Types) == 0 {
 		config.Types = []string{"text/html"}
 	}
-
-	fmt.Println("SSI Enabled")
 
 	return &SSIPlugin{
 		next:   next,
@@ -84,11 +84,11 @@ func (rw *responseWriter) Write(data []byte) (int, error) {
 }
 
 func (p *SSIPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	start := time.Now()
 	if !p.config.Enabled {
 		p.next.ServeHTTP(rw, req)
 		return
 	}
-	fmt.Println("SSI Enabled2")
 
 	buf := p.bufferPool.Get().(*bytes.Buffer)
 	buf.Reset()
@@ -104,14 +104,24 @@ func (p *SSIPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	p.next.ServeHTTP(customRW, req)
 
 	contentType := customRW.Header().Get("Content-Type")
-	fmt.Printf("SSI ServeHTTP: %s, %s\n", !p.shouldProcess(contentType, buf.Len()), contentType)
 	if !p.shouldProcess(contentType, buf.Len()) {
 		rw.WriteHeader(customRW.statusCode)
 		_, _ = io.Copy(rw, buf)
 		return
 	}
 
-	processed, err := p.processSSI(req, buf.Bytes())
+	var processed []byte
+	var err error
+
+	if p.config.Concurrent {
+		fmt.Println("Concurrent processing enabled")
+		cache := make(map[string][]byte)
+		processed, err = p.processSSIConcurrent(req, buf.Bytes(), cache)
+	} else {
+		fmt.Println("Concurrent processing disabled")
+		processed, err = p.processSSI(req, buf.Bytes())
+	}
+
 	if err != nil && !p.config.Silent {
 		http.Error(rw, fmt.Sprintf("SSI processing error: %v", err), http.StatusInternalServerError)
 		return
@@ -128,6 +138,8 @@ func (p *SSIPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	rw.WriteHeader(customRW.statusCode)
 	_, _ = rw.Write(processed)
+	duration := time.Since(start)
+	fmt.Printf("%s %s %d %s\n", req.Method, req.URL.Path, customRW.statusCode, duration)
 }
 
 func (p *SSIPlugin) shouldProcess(contentType string, size int) bool {
@@ -141,6 +153,92 @@ func (p *SSIPlugin) shouldProcess(contentType string, size int) bool {
 		}
 	}
 	return false
+}
+
+type replacement struct {
+	start int
+	end   int
+	data  []byte
+	err   error
+}
+
+func (p *SSIPlugin) processSSIConcurrent(req *http.Request, content []byte, cache map[string][]byte) ([]byte, error) {
+	matches := p.ssiRegex.FindAllSubmatchIndex(content, -1)
+	if len(matches) == 0 {
+		return content, nil
+	}
+
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	repls := make([]replacement, len(matches))
+
+	for i, match := range matches {
+		start, end := match[0], match[1]
+		dirStart, dirEnd := match[2], match[3]
+		paramStart, paramEnd := match[4], match[5]
+
+		directive := string(content[dirStart:dirEnd])
+		paramStr := string(content[paramStart:paramEnd])
+
+		params := make(map[string]string)
+		paramMatches := p.includeRegex.FindAllStringSubmatch(paramStr, -1)
+		for _, pm := range paramMatches {
+			if len(pm) >= 3 {
+				params[pm[1]] = pm[2]
+			}
+		}
+
+		if directive == "include" {
+			wg.Add(1)
+			go func(idx int, params map[string]string, start, end int) {
+				defer wg.Done()
+
+				uri := params["virtual"]
+				if uri == "" {
+					uri = params["file"]
+				}
+
+				// Check cache first (with lock)
+				mu.Lock()
+				cached, ok := cache[uri]
+				mu.Unlock()
+
+				var data []byte
+				if ok {
+					data = cached
+				} else {
+					data = p.handleInclude(req, params)
+					// Store in cache (with lock)
+					mu.Lock()
+					cache[uri] = data
+					mu.Unlock()
+				}
+
+				repls[idx] = replacement{start: start, end: end, data: data}
+			}(i, params, start, end)
+		} else {
+			// Process other directives synchronously
+			repls[i] = replacement{
+				start: start,
+				end:   end,
+				data:  p.processDirective(directive, req, params),
+			}
+		}
+	}
+
+	wg.Wait()
+
+	var result bytes.Buffer
+	result.Grow(len(content)) // Pre-allocate
+	lastIndex := 0
+
+	for _, r := range repls {
+		result.Write(content[lastIndex:r.start])
+		result.Write(r.data)
+		lastIndex = r.end
+	}
+	result.Write(content[lastIndex:])
+	return result.Bytes(), nil
 }
 
 func (p *SSIPlugin) processSSI(req *http.Request, content []byte) ([]byte, error) {
@@ -187,6 +285,24 @@ func (p *SSIPlugin) parseDirective(match []byte) (string, map[string]string) {
 	}
 
 	return directive, params
+}
+
+func (p *SSIPlugin) processDirective(directive string, req *http.Request, params map[string]string) []byte {
+	switch directive {
+	case "echo":
+		return p.handleEcho(req, params)
+	case "config":
+		return p.handleConfig(params)
+	case "set":
+		return p.handleSet(req, params)
+	case "if", "elif", "else", "endif":
+		return []byte("")
+	default:
+		if p.config.Silent {
+			return []byte("")
+		}
+		return []byte(fmt.Sprintf("[SSI: unknown directive '%s']", directive))
+	}
 }
 
 func (p *SSIPlugin) handleInclude(req *http.Request, params map[string]string) []byte {
@@ -267,7 +383,6 @@ func (p *SSIPlugin) handleConfig(params map[string]string) []byte {
 }
 
 func (p *SSIPlugin) handleSet(req *http.Request, params map[string]string) []byte {
-
 	return []byte("")
 }
 
