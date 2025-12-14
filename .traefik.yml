@@ -1,8 +1,9 @@
-displayName: SSI Plugin
+displayName: "SSI Plugin"
 type: middleware
-import: github.com/dtherhtun/ssi
-summary: Server Side Includes for Traefik
+import: github.com/username/traefik-plugin-ssi
+summary: "Server Side Includes middleware for Traefik"
 testData:
-  enabled: true
-  types:
-    - text/html
+  config:
+    includeTimeoutSeconds: 5
+    cacheTTLSeconds: 60
+    maxConcurrency: 8

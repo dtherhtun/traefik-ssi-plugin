@@ -1,0 +1,21 @@
+File: tests.test
+Type: inuse_space
+Time: 2025-12-14 21:08:40 +07
+Showing nodes accounting for 2567.69kB, 100% of 2567.69kB total
+      flat  flat%   sum%        cum   cum%
+    1539kB 59.94% 59.94%     1539kB 59.94%  runtime.allocm
+  516.64kB 20.12% 80.06%   516.64kB 20.12%  runtime.procresize
+  512.05kB 19.94%   100%   512.05kB 19.94%  runtime.(*scavengerState).init
+         0     0%   100%   512.05kB 19.94%  runtime.bgscavenge
+         0     0%   100%      513kB 19.98%  runtime.mcall
+         0     0%   100%     1026kB 39.96%  runtime.mstart
+         0     0%   100%     1026kB 39.96%  runtime.mstart0
+         0     0%   100%     1026kB 39.96%  runtime.mstart1
+         0     0%   100%     1539kB 59.94%  runtime.newm
+         0     0%   100%      513kB 19.98%  runtime.park_m
+         0     0%   100%     1539kB 59.94%  runtime.resetspinning
+         0     0%   100%   516.64kB 20.12%  runtime.rt0_go
+         0     0%   100%   516.64kB 20.12%  runtime.schedinit
+         0     0%   100%     1539kB 59.94%  runtime.schedule
+         0     0%   100%     1539kB 59.94%  runtime.startm
+         0     0%   100%     1539kB 59.94%  runtime.wakep

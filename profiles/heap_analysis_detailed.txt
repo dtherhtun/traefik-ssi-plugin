@@ -1,0 +1,2416 @@
+Total: 22.68GB
+ROUTINE ======================== bufio.(*Writer).Flush in /opt/homebrew/Cellar/go/1.24.3/libexec/src/bufio/bufio.go
+         0   781.85MB (flat, cum)  3.37% of Total
+         .          .    636:func (b *Writer) Flush() error {
+         .          .    637:	if b.err != nil {
+         .          .    638:		return b.err
+         .          .    639:	}
+         .          .    640:	if b.n == 0 {
+         .          .    641:		return nil
+         .          .    642:	}
+         .   781.85MB    643:	n, err := b.wr.Write(b.buf[0:b.n])
+         .          .    644:	if n < b.n && err == nil {
+         .          .    645:		err = io.ErrShortWrite
+         .          .    646:	}
+         .          .    647:	if err != nil {
+         .          .    648:		if n > 0 && n < b.n {
+ROUTINE ======================== bufio.NewReader in /opt/homebrew/Cellar/go/1.24.3/libexec/src/bufio/bufio.go
+         0     2.22GB (flat, cum)  9.80% of Total
+         .          .     62:func NewReader(rd io.Reader) *Reader {
+         .     2.22GB     63:	return NewReaderSize(rd, defaultBufSize)
+         .          .     64:}
+         .          .     65:
+         .          .     66:// Size returns the size of the underlying buffer in bytes.
+         .          .     67:func (b *Reader) Size() int { return len(b.buf) }
+         .          .     68:
+ROUTINE ======================== bufio.NewReaderSize in /opt/homebrew/Cellar/go/1.24.3/libexec/src/bufio/bufio.go
+    2.22GB     2.22GB (flat, cum)  9.80% of Total
+         .          .     50:func NewReaderSize(rd io.Reader, size int) *Reader {
+         .          .     51:	// Is it already a Reader?
+         .          .     52:	b, ok := rd.(*Reader)
+         .          .     53:	if ok && len(b.buf) >= size {
+         .          .     54:		return b
+         .          .     55:	}
+      48MB       48MB     56:	r := new(Reader)
+    2.18GB     2.18GB     57:	r.reset(make([]byte, max(size, minReadBufferSize)), rd)
+         .          .     58:	return r
+         .          .     59:}
+         .          .     60:
+         .          .     61:// NewReader returns a new [Reader] whose buffer has the default size.
+         .          .     62:func NewReader(rd io.Reader) *Reader {
+ROUTINE ======================== bufio.NewWriterSize in /opt/homebrew/Cellar/go/1.24.3/libexec/src/bufio/bufio.go
+    8.66GB     8.66GB (flat, cum) 38.16% of Total
+         .          .    590:func NewWriterSize(w io.Writer, size int) *Writer {
+         .          .    591:	// Is it already a Writer?
+         .          .    592:	b, ok := w.(*Writer)
+         .          .    593:	if ok && len(b.buf) >= size {
+         .          .    594:		return b
+         .          .    595:	}
+         .          .    596:	if size <= 0 {
+         .          .    597:		size = defaultBufSize
+         .          .    598:	}
+   33.50MB    33.50MB    599:	return &Writer{
+    8.62GB     8.62GB    600:		buf: make([]byte, size),
+         .          .    601:		wr:  w,
+         .          .    602:	}
+         .          .    603:}
+         .          .    604:
+         .          .    605:// NewWriter returns a new [Writer] whose buffer has the default size.
+ROUTINE ======================== bytes.(*Buffer).Write in /opt/homebrew/Cellar/go/1.24.3/libexec/src/bytes/buffer.go
+         0   345.71MB (flat, cum)  1.49% of Total
+         .          .    175:func (b *Buffer) Write(p []byte) (n int, err error) {
+         .          .    176:	b.lastRead = opInvalid
+         .          .    177:	m, ok := b.tryGrowByReslice(len(p))
+         .          .    178:	if !ok {
+         .   345.71MB    179:		m = b.grow(len(p))
+         .          .    180:	}
+         .          .    181:	return copy(b.buf[m:], p), nil
+         .          .    182:}
+         .          .    183:
+         .          .    184:// WriteString appends the contents of s to the buffer, growing the buffer as
+ROUTINE ======================== bytes.(*Buffer).grow in /opt/homebrew/Cellar/go/1.24.3/libexec/src/bytes/buffer.go
+         0   345.71MB (flat, cum)  1.49% of Total
+         .          .    126:func (b *Buffer) grow(n int) int {
+         .          .    127:	m := b.Len()
+         .          .    128:	// If buffer is empty, reset to recover space.
+         .          .    129:	if m == 0 && b.off != 0 {
+         .          .    130:		b.Reset()
+         .          .    131:	}
+         .          .    132:	// Try to grow by means of a reslice.
+         .          .    133:	if i, ok := b.tryGrowByReslice(n); ok {
+         .          .    134:		return i
+         .          .    135:	}
+         .          .    136:	if b.buf == nil && n <= smallBufferSize {
+         .          .    137:		b.buf = make([]byte, n, smallBufferSize)
+         .          .    138:		return 0
+         .          .    139:	}
+         .          .    140:	c := cap(b.buf)
+         .          .    141:	if n <= c/2-m {
+         .          .    142:		// We can slide things down instead of allocating a new
+         .          .    143:		// slice. We only need m+n <= c to slide, but
+         .          .    144:		// we instead let capacity get twice as large so we
+         .          .    145:		// don't spend all our time copying.
+         .          .    146:		copy(b.buf, b.buf[b.off:])
+         .          .    147:	} else if c > maxInt-c-n {
+         .          .    148:		panic(ErrTooLarge)
+         .          .    149:	} else {
+         .          .    150:		// Add b.off to account for b.buf[:b.off] being sliced off the front.
+         .   345.71MB    151:		b.buf = growSlice(b.buf[b.off:], b.off+n)
+         .          .    152:	}
+         .          .    153:	// Restore b.off and len(b.buf).
+         .          .    154:	b.off = 0
+         .          .    155:	b.buf = b.buf[:m+n]
+         .          .    156:	return m
+ROUTINE ======================== bytes.growSlice in /opt/homebrew/Cellar/go/1.24.3/libexec/src/bytes/buffer.go
+  345.71MB   345.71MB (flat, cum)  1.49% of Total
+         .          .    229:func growSlice(b []byte, n int) []byte {
+         .          .    230:	defer func() {
+         .          .    231:		if recover() != nil {
+         .          .    232:			panic(ErrTooLarge)
+         .          .    233:		}
+         .          .    234:	}()
+         .          .    235:	// TODO(http://golang.org/issue/51462): We should rely on the append-make
+         .          .    236:	// pattern so that the compiler can call runtime.growslice. For example:
+         .          .    237:	//	return append(b, make([]byte, n)...)
+         .          .    238:	// This avoids unnecessary zero-ing of the first len(b) bytes of the
+         .          .    239:	// allocated slice, but this pattern causes b to escape onto the heap.
+         .          .    240:	//
+         .          .    241:	// Instead use the append-make pattern with a nil slice to ensure that
+         .          .    242:	// we allocate buffers rounded up to the closest size class.
+         .          .    243:	c := len(b) + n // ensure enough space for n elements
+         .          .    244:	if c < 2*cap(b) {
+         .          .    245:		// The growth rate has historically always been 2x. In the future,
+         .          .    246:		// we could rely purely on append to determine the growth rate.
+         .          .    247:		c = 2 * cap(b)
+         .          .    248:	}
+  345.71MB   345.71MB    249:	b2 := append([]byte(nil), make([]byte, c)...)
+         .          .    250:	i := copy(b2, b)
+         .          .    251:	return b2[:i]
+         .          .    252:}
+         .          .    253:
+         .          .    254:// WriteTo writes data to w until the buffer is drained or an error occurs.
+ROUTINE ======================== compress/flate.(*compressor).init in /opt/homebrew/Cellar/go/1.24.3/libexec/src/compress/flate/deflate.go
+  650.62kB     1.17MB (flat, cum) 0.005% of Total
+         .          .    569:func (d *compressor) init(w io.Writer, level int) (err error) {
+         .          .    570:	d.w = newHuffmanBitWriter(w)
+         .          .    571:
+         .          .    572:	switch {
+         .          .    573:	case level == NoCompression:
+         .          .    574:		d.window = make([]byte, maxStoreBlockSize)
+         .          .    575:		d.fill = (*compressor).fillStore
+         .          .    576:		d.step = (*compressor).store
+         .          .    577:	case level == HuffmanOnly:
+         .          .    578:		d.window = make([]byte, maxStoreBlockSize)
+         .          .    579:		d.fill = (*compressor).fillStore
+         .          .    580:		d.step = (*compressor).storeHuff
+         .          .    581:	case level == BestSpeed:
+         .          .    582:		d.compressionLevel = levels[level]
+         .          .    583:		d.window = make([]byte, maxStoreBlockSize)
+         .          .    584:		d.fill = (*compressor).fillStore
+         .          .    585:		d.step = (*compressor).encSpeed
+         .   544.67kB    586:		d.bestSpeed = newDeflateFast()
+  650.62kB   650.62kB    587:		d.tokens = make([]token, maxStoreBlockSize)
+         .          .    588:	case level == DefaultCompression:
+         .          .    589:		level = 6
+         .          .    590:		fallthrough
+         .          .    591:	case 2 <= level && level <= 9:
+         .          .    592:		d.compressionLevel = levels[level]
+ROUTINE ======================== compress/flate.NewWriter in /opt/homebrew/Cellar/go/1.24.3/libexec/src/compress/flate/deflate.go
+  902.59kB     2.05MB (flat, cum) 0.0088% of Total
+         .          .    662:func NewWriter(w io.Writer, level int) (*Writer, error) {
+  902.59kB   902.59kB    663:	var dw Writer
+         .     1.17MB    664:	if err := dw.d.init(w, level); err != nil {
+         .          .    665:		return nil, err
+         .          .    666:	}
+         .          .    667:	return &dw, nil
+         .          .    668:}
+         .          .    669:
+ROUTINE ======================== compress/flate.newDeflateFast in /opt/homebrew/Cellar/go/1.24.3/libexec/src/compress/flate/deflatefast.go
+  544.67kB   544.67kB (flat, cum) 0.0023% of Total
+         .          .     63:func newDeflateFast() *deflateFast {
+  544.67kB   544.67kB     64:	return &deflateFast{cur: maxStoreBlockSize, prev: make([]byte, 0, maxStoreBlockSize)}
+         .          .     65:}
+         .          .     66:
+         .          .     67:// encode encodes a block given in src and appends tokens
+         .          .     68:// to dst and returns the result.
+         .          .     69:func (e *deflateFast) encode(dst []token, src []byte) []token {
+ROUTINE ======================== compress/gzip.(*Writer).Write in /opt/homebrew/Cellar/go/1.24.3/libexec/src/compress/gzip/gzip.go
+         0     2.05MB (flat, cum) 0.0088% of Total
+         .          .    139:func (z *Writer) Write(p []byte) (int, error) {
+         .          .    140:	if z.err != nil {
+         .          .    141:		return 0, z.err
+         .          .    142:	}
+         .          .    143:	var n int
+         .          .    144:	// Write the GZIP header lazily.
+         .          .    145:	if !z.wroteHeader {
+         .          .    146:		z.wroteHeader = true
+         .          .    147:		z.buf = [10]byte{0: gzipID1, 1: gzipID2, 2: gzipDeflate}
+         .          .    148:		if z.Extra != nil {
+         .          .    149:			z.buf[3] |= 0x04
+         .          .    150:		}
+         .          .    151:		if z.Name != "" {
+         .          .    152:			z.buf[3] |= 0x08
+         .          .    153:		}
+         .          .    154:		if z.Comment != "" {
+         .          .    155:			z.buf[3] |= 0x10
+         .          .    156:		}
+         .          .    157:		if z.ModTime.After(time.Unix(0, 0)) {
+         .          .    158:			// Section 2.3.1, the zero value for MTIME means that the
+         .          .    159:			// modified time is not set.
+         .          .    160:			le.PutUint32(z.buf[4:8], uint32(z.ModTime.Unix()))
+         .          .    161:		}
+         .          .    162:		if z.level == BestCompression {
+         .          .    163:			z.buf[8] = 2
+         .          .    164:		} else if z.level == BestSpeed {
+         .          .    165:			z.buf[8] = 4
+         .          .    166:		}
+         .          .    167:		z.buf[9] = z.OS
+         .          .    168:		_, z.err = z.w.Write(z.buf[:10])
+         .          .    169:		if z.err != nil {
+         .          .    170:			return 0, z.err
+         .          .    171:		}
+         .          .    172:		if z.Extra != nil {
+         .          .    173:			z.err = z.writeBytes(z.Extra)
+         .          .    174:			if z.err != nil {
+         .          .    175:				return 0, z.err
+         .          .    176:			}
+         .          .    177:		}
+         .          .    178:		if z.Name != "" {
+         .          .    179:			z.err = z.writeString(z.Name)
+         .          .    180:			if z.err != nil {
+         .          .    181:				return 0, z.err
+         .          .    182:			}
+         .          .    183:		}
+         .          .    184:		if z.Comment != "" {
+         .          .    185:			z.err = z.writeString(z.Comment)
+         .          .    186:			if z.err != nil {
+         .          .    187:				return 0, z.err
+         .          .    188:			}
+         .          .    189:		}
+         .          .    190:		if z.compressor == nil {
+         .     2.05MB    191:			z.compressor, _ = flate.NewWriter(z.w, z.level)
+         .          .    192:		}
+         .          .    193:	}
+         .          .    194:	z.size += uint32(len(p))
+         .          .    195:	z.digest = crc32.Update(z.digest, crc32.IEEETable, p)
+         .          .    196:	n, z.err = z.compressor.Write(p)
+ROUTINE ======================== github.com/username/traefik-plugin-ssi/ssi.(*Processor).Close in /Users/dther/Project/traefik-plugin-ssi/ssi/executor.go
+      13MB       13MB (flat, cum) 0.056% of Total
+         .          .     96:func (p *Processor) Close() {
+         .          .     97:	// Flush any remaining static content
+         .          .     98:	segments := p.scanner.Flush()
+         .          .     99:	for _, seg := range segments {
+         .          .    100:		if seg.Type == SegmentStatic {
+      13MB       13MB    101:			p.queue <- seg.Content
+         .          .    102:		}
+         .          .    103:	}
+         .          .    104:
+         .          .    105:	close(p.queue)
+         .          .    106:	// Wait for writer loop to finish
+ROUTINE ======================== github.com/username/traefik-plugin-ssi/ssi.(*Processor).Write in /Users/dther/Project/traefik-plugin-ssi/ssi/executor.go
+  588.51MB     7.70GB (flat, cum) 33.97% of Total
+         .          .     40:func (p *Processor) Write(chunk []byte) (int, error) {
+         .          .     41:	// Parse the chunk into segments
+         .     7.13GB     42:	segments := p.scanner.Scan(chunk)
+         .          .     43:	for _, seg := range segments {
+         .          .     44:		switch seg.Type {
+         .          .     45:		case SegmentStatic:
+         .          .     46:			// No need to copy - segment content is already a separate slice from scanner
+      25MB       25MB     47:			p.queue <- seg.Content
+         .          .     48:		case SegmentInclude:
+         .          .     49:			// OPTIMIZATION: Check cache first to avoid goroutine overhead
+         .          .     50:			if cached, ok := p.fetcher.GetCached(seg.Include.Path); ok {
+         .          .     51:				// Even if cached, we must preserve order.
+         .          .     52:				// We can push the result directly to the queue if we wrap it in a channel
+         .          .     53:				// OR we can change queue to accept Result objects?
+         .          .     54:				// Current queue: chan interface{} (either []byte or chan []byte)
+         .          .     55:				// If we push []byte, processQueue treats it as static.
+         .          .     56:				// Wait! "processQueue" implementation:
+         .          .     57:				/*
+         .          .     58:				   		case []byte:
+         .          .     59:				              p.rw.Write(v)
+         .          .     60:				          case chan []byte:
+         .          .     61:				              content := <-v
+         .          .     62:				              p.rw.Write(content)
+         .          .     63:				*/
+         .          .     64:				// So if we push []byte, it gets written immediately.
+         .          .     65:				// Correct! Because queue is ordered.
+         .          .     66:				// If we push Static1, Include1(Cached), Static2.
+         .          .     67:				// We push []byte(Static1), []byte(Include1), []byte(Static2).
+         .          .     68:				// They are read in order.
+         .          .     69:				// BUT: SegmentStatic is pushed as []byte.
+         .          .     70:				// So yes, we can push []byte(cachedContent).
+  563.51MB   563.51MB     71:				p.queue <- cached
+         .          .     72:			} else {
+         .          .     73:				// Not cached, go async
+         .          .     74:				resultChan := make(chan []byte, 1)
+         .          .     75:				p.queue <- resultChan
+         .          .     76:
+ROUTINE ======================== github.com/username/traefik-plugin-ssi/ssi.(*Processor).processQueue in /Users/dther/Project/traefik-plugin-ssi/ssi/executor.go
+    1.50MB   783.35MB (flat, cum)  3.37% of Total
+         .          .    110:func (p *Processor) processQueue() {
+         .          .    111:	defer p.wg.Done()
+         .          .    112:	defer p.bufferedRw.Flush() // Flush at end
+         .          .    113:
+    1.50MB     1.50MB    114:	for item := range p.queue {
+         .          .    115:		switch v := item.(type) {
+         .          .    116:		case []byte:
+         .          .    117:			p.bufferedRw.Write(v)
+         .          .    118:		case chan []byte:
+         .          .    119:			// Only flush if buffer has content to avoid unnecessary syscalls
+         .          .    120:			// This ensures previous content reaches the client while we wait for network I/O
+         .          .    121:			if p.bufferedRw.Buffered() > 0 {
+         .          .    122:				p.bufferedRw.Flush()
+         .          .    123:			}
+         .          .    124:
+         .          .    125:			content := <-v
+         .          .    126:			p.bufferedRw.Write(content)
+         .          .    127:		}
+         .          .    128:	}
+         .   781.85MB    129:}
+ROUTINE ======================== github.com/username/traefik-plugin-ssi/ssi.(*StreamScanner).Scan in /Users/dther/Project/traefik-plugin-ssi/ssi/parser.go
+    4.88GB     7.13GB (flat, cum) 31.43% of Total
+         .          .     93:func (s *StreamScanner) Scan(chunk []byte) []Segment {
+         .          .     94:	// Pre-allocate buffer on first use to reduce allocations
+         .          .     95:	if s.buffer == nil {
+    2.16GB     2.16GB     96:		s.buffer = make([]byte, 0, 4096) // 4KB initial capacity
+         .          .     97:	}
+         .          .     98:	s.buffer = append(s.buffer, chunk...)
+  368.25MB   368.25MB     99:	segments := make([]Segment, 0, 16) // Pre-allocate for typical page
+         .          .    100:
+         .          .    101:	for {
+         .          .    102:		startIdx := bytes.Index(s.buffer, tokenStart)
+         .          .    103:		if startIdx == -1 {
+         .          .    104:			// No Start Tag found.
+         .          .    105:			// We can safely flush everything except the last few bytes
+         .          .    106:			// that might form the start of a tag.
+         .          .    107:			safeLen := len(s.buffer) - len(tokenStart) + 1
+         .          .    108:			if safeLen < 0 {
+         .          .    109:				safeLen = 0
+         .          .    110:			}
+         .          .    111:
+         .          .    112:			if safeLen > 0 {
+         .          .    113:				segments = append(segments, Segment{
+         .          .    114:					Type:    SegmentStatic,
+         .          .    115:					Content: s.buffer[:safeLen],
+         .          .    116:				})
+         .          .    117:				s.buffer = s.buffer[safeLen:]
+         .          .    118:			}
+         .          .    119:			break
+         .          .    120:		}
+         .          .    121:
+         .          .    122:		// We found a start tag at startIdx.
+         .          .    123:		// If there is content before it, that's a static segment.
+         .          .    124:		if startIdx > 0 {
+         .          .    125:			segments = append(segments, Segment{
+         .          .    126:				Type:    SegmentStatic,
+         .          .    127:				Content: s.buffer[:startIdx],
+         .          .    128:			})
+         .          .    129:			s.buffer = s.buffer[startIdx:]
+         .          .    130:			// startIdx is now 0 relative to new buffer
+         .          .    131:			startIdx = 0
+         .          .    132:		}
+         .          .    133:
+         .          .    134:		endIdx := bytes.Index(s.buffer, tokenEnd)
+         .          .    135:		if endIdx == -1 {
+         .          .    136:			// Tag started but not finished.
+         .          .    137:			// Check max length to prevent DOS
+         .          .    138:			if len(s.buffer) > maxTagLength {
+         .          .    139:				// Too long to be a valid tag, flush it as static text to avoid blocking forever
+         .          .    140:				// Flush just the first byte to make progress
+         .          .    141:				segments = append(segments, Segment{
+         .          .    142:					Type:    SegmentStatic,
+         .          .    143:					Content: s.buffer[:1],
+         .          .    144:				})
+         .          .    145:				s.buffer = s.buffer[1:]
+         .          .    146:				continue
+         .          .    147:			}
+         .          .    148:			break // Need more data
+         .          .    149:		}
+         .          .    150:
+         .          .    151:		totalEnd := endIdx + len(tokenEnd)
+         .          .    152:		tagContent := s.buffer[:totalEnd]
+         .          .    153:
+         .          .    154:		// Parse the tag - try fast path first, fall back to regex
+         .          .    155:		var include *Include
+         .     2.25GB    156:		if inc := parseIncludeTagFast(tagContent); inc != nil {
+         .          .    157:			// Fast path succeeded
+         .          .    158:			include = inc
+         .          .    159:		} else {
+         .          .    160:			// Fall back to regex for edge cases
+         .          .    161:			if m := includeRegex.FindSubmatch(tagContent); m != nil {
+         .          .    162:				include = &Include{
+         .          .    163:					Type:     string(m[1]),
+         .          .    164:					Path:     string(m[2]),
+         .          .    165:					Original: string(tagContent),
+         .          .    166:				}
+         .          .    167:			}
+         .          .    168:		}
+         .          .    169:
+         .          .    170:		if include != nil {
+    2.36GB     2.36GB    171:			segments = append(segments, Segment{
+         .          .    172:				Type:    SegmentInclude,
+         .          .    173:				Include: include,
+         .          .    174:			})
+         .          .    175:		} else {
+         .          .    176:			// Malformed or different tag starting with <!--#include (unlikely but possible)
+ROUTINE ======================== github.com/username/traefik-plugin-ssi/ssi.NewProcessor in /Users/dther/Project/traefik-plugin-ssi/ssi/executor.go
+    2.74GB    11.39GB (flat, cum) 50.23% of Total
+         .          .     21:func NewProcessor(rw http.ResponseWriter, req *http.Request, fetcher *Fetcher) *Processor {
+      43MB       43MB     22:	p := &Processor{
+         .          .     23:		rw:             rw,
+         .     8.66GB     24:		bufferedRw:     bufio.NewWriterSize(rw, 16384), // 4KB → 16KB for better throughput
+         .          .     25:		req:            req,
+         .          .     26:		fetcher:        fetcher,
+      11MB       11MB     27:		scanner:        &StreamScanner{},
+    2.56GB     2.56GB     28:		queue:          make(chan interface{}, 256), // 100 → 256 to handle 44 includes + segments
+   65.51MB    65.51MB     29:		done:           make(chan struct{}),
+   53.51MB    53.51MB     30:		concurrencySem: make(chan struct{}, fetcher.maxConcurrency),
+         .          .     31:	}
+         .          .     32:
+         .          .     33:	// Start the writer loop
+         .          .     34:	p.wg.Add(1)
+    9.50MB     9.50MB     35:	go p.processQueue()
+         .          .     36:
+         .          .     37:	return p
+         .          .     38:}
+         .          .     39:
+         .          .     40:func (p *Processor) Write(chunk []byte) (int, error) {
+ROUTINE ======================== github.com/username/traefik-plugin-ssi/ssi.parseIncludeTagFast in /Users/dther/Project/traefik-plugin-ssi/ssi/parser.go
+    2.25GB     2.25GB (flat, cum)  9.91% of Total
+         .          .     42:func parseIncludeTagFast(tag []byte) *Include {
+    1.11GB     1.11GB     43:	s := string(tag)
+         .          .     44:
+         .          .     45:	// Find type (virtual or file)
+         .          .     46:	var includeType string
+         .          .     47:	var typeEnd int
+         .          .     48:	if i := strings.Index(s, "virtual="); i != -1 {
+         .          .     49:		includeType = "virtual"
+         .          .     50:		typeEnd = i + 8
+         .          .     51:	} else if i := strings.Index(s, "file="); i != -1 {
+         .          .     52:		includeType = "file"
+         .          .     53:		typeEnd = i + 5
+         .          .     54:	} else {
+         .          .     55:		return nil // Fall back to regex
+         .          .     56:	}
+         .          .     57:
+         .          .     58:	// Find path between quotes
+         .          .     59:	if typeEnd >= len(s) {
+         .          .     60:		return nil
+         .          .     61:	}
+         .          .     62:	rest := s[typeEnd:]
+         .          .     63:
+         .          .     64:	// Skip whitespace before quote
+         .          .     65:	for len(rest) > 0 && (rest[0] == ' ' || rest[0] == '\t') {
+         .          .     66:		rest = rest[1:]
+         .          .     67:		typeEnd++
+         .          .     68:	}
+         .          .     69:
+         .          .     70:	if len(rest) == 0 {
+         .          .     71:		return nil
+         .          .     72:	}
+         .          .     73:
+         .          .     74:	quote := rest[0] // Should be " or '
+         .          .     75:	if quote != '"' && quote != '\'' {
+         .          .     76:		return nil // Fall back to regex
+         .          .     77:	}
+         .          .     78:
+         .          .     79:	endIdx := strings.IndexByte(rest[1:], quote)
+         .          .     80:	if endIdx == -1 {
+         .          .     81:		return nil // Fall back to regex
+         .          .     82:	}
+         .          .     83:
+         .          .     84:	path := rest[1 : endIdx+1]
+         .          .     85:
+    1.13GB     1.13GB     86:	return &Include{
+         .          .     87:		Type:     includeType,
+         .          .     88:		Path:     path,
+         .          .     89:		Original: s,
+         .          .     90:	}
+         .          .     91:}
+ROUTINE ======================== github.com/username/traefik-plugin-ssi/tests.BenchmarkProcessor_LargePage in /Users/dther/Project/traefik-plugin-ssi/tests/benchmark_test.go
+         0    21.91GB (flat, cum) 96.59% of Total
+         .          .    124:func BenchmarkProcessor_LargePage(b *testing.B) {
+         .          .    125:	backend := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+         .          .    126:		w.Header().Set("Content-Type", "text/html")
+         .          .    127:		w.WriteHeader(200)
+         .          .    128:		w.Write([]byte("<p>inc</p>"))
+         .          .    129:	})
+         .          .    130:
+         .          .    131:	cache := ssi.NewCache(300)
+         .          .    132:	breaker := ssi.NewCircuitBreaker(5, 60)
+         .          .    133:	fetcher := ssi.NewFetcher(backend, cache, breaker, 8, 5)
+         .          .    134:
+         .          .    135:	// Build HTML with 44 includes like index.html
+         .          .    136:	var buf bytes.Buffer
+         .          .    137:	buf.WriteString("<html><body>")
+         .          .    138:	for i := 1; i <= 44; i++ {
+         .          .    139:		buf.WriteString("<!--#include virtual=\"/cached.html\" -->")
+         .          .    140:	}
+         .          .    141:	buf.WriteString("</body></html>")
+         .          .    142:	content := buf.Bytes()
+         .          .    143:
+         .          .    144:	// Pre-warm cache
+         .          .    145:	cache.Set("/cached.html", []byte("<p>cached</p>"))
+         .          .    146:
+         .          .    147:	b.ResetTimer()
+         .          .    148:	b.ReportAllocs()
+         .          .    149:
+         .          .    150:	for i := 0; i < b.N; i++ {
+         .    83.50MB    151:		rw := httptest.NewRecorder()
+         .     2.72GB    152:		req := httptest.NewRequest("GET", "/index.html", nil)
+         .          .    153:
+         .    11.39GB    154:		processor := ssi.NewProcessor(rw, req, fetcher)
+         .     7.70GB    155:		processor.Write(content)
+         .       13MB    156:		processor.Close()
+         .          .    157:	}
+         .          .    158:}
+ROUTINE ======================== internal/sync.(*HashTrieMap[go.shape.struct { net/netip.isV6 bool; net/netip.zoneV6 string },go.shape.struct { weak._ [0]*go.shape.struct { net/netip.isV6 bool; net/netip.zoneV6 string }; weak.u unsafe.Pointer }]).All in /opt/homebrew/Cellar/go/1.24.3/libexec/src/internal/sync/hashtriemap.go
+  512.01kB   512.01kB (flat, cum) 0.0022% of Total
+         .          .    481:func (ht *HashTrieMap[K, V]) All() func(yield func(K, V) bool) {
+         .          .    482:	ht.init()
+  512.01kB   512.01kB    483:	return func(yield func(key K, value V) bool) {
+         .          .    484:		ht.iter(ht.root.Load(), yield)
+         .          .    485:	}
+         .          .    486:}
+         .          .    487:
+         .          .    488:// Range calls f sequentially for each key and value present in the map.
+ROUTINE ======================== main.main in _testmain.go
+         0     1.16MB (flat, cum) 0.005% of Total
+ Error: could not find file _testmain.go on path /Users/dther/Project/traefik-plugin-ssi
+ROUTINE ======================== net/http.(*Request).WithContext in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/http/request.go
+  156.55MB   156.55MB (flat, cum)  0.67% of Total
+         .          .    368:func (r *Request) WithContext(ctx context.Context) *Request {
+         .          .    369:	if ctx == nil {
+         .          .    370:		panic("nil context")
+         .          .    371:	}
+  156.55MB   156.55MB    372:	r2 := new(Request)
+         .          .    373:	*r2 = *r
+         .          .    374:	r2.ctx = ctx
+         .          .    375:	return r2
+         .          .    376:}
+         .          .    377:
+ROUTINE ======================== net/http.Header.Clone in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/http/header.go
+  231.57MB   231.57MB (flat, cum)     1% of Total
+         .          .     94:func (h Header) Clone() Header {
+         .          .     95:	if h == nil {
+         .          .     96:		return nil
+         .          .     97:	}
+         .          .     98:
+         .          .     99:	// Find total number of values.
+         .          .    100:	nv := 0
+         .          .    101:	for _, vv := range h {
+         .          .    102:		nv += len(vv)
+         .          .    103:	}
+       9MB        9MB    104:	sv := make([]string, nv) // shared backing array for headers' values
+   22.50MB    22.50MB    105:	h2 := make(Header, len(h))
+         .          .    106:	for k, vv := range h {
+         .          .    107:		if vv == nil {
+         .          .    108:			// Preserve nil values. ReverseProxy distinguishes
+         .          .    109:			// between nil and zero-length header values.
+         .          .    110:			h2[k] = nil
+         .          .    111:			continue
+         .          .    112:		}
+         .          .    113:		n := copy(sv, vv)
+  200.07MB   200.07MB    114:		h2[k] = sv[:n:n]
+         .          .    115:		sv = sv[n:]
+         .          .    116:	}
+         .          .    117:	return h2
+         .          .    118:}
+         .          .    119:
+ROUTINE ======================== net/http.Header.Set in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/http/header.go
+         0   204.57MB (flat, cum)  0.88% of Total
+         .          .     39:func (h Header) Set(key, value string) {
+         .   204.57MB     40:	textproto.MIMEHeader(h).Set(key, value)
+         .          .     41:}
+         .          .     42:
+         .          .     43:// Get gets the first value associated with the given key. If
+         .          .     44:// there are no values associated with the key, Get returns "".
+         .          .     45:// It is case insensitive; [textproto.CanonicalMIMEHeaderKey] is
+ROUTINE ======================== net/http.ReadRequest in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/http/request.go
+         0   316.11MB (flat, cum)  1.36% of Total
+         .          .   1058:func ReadRequest(b *bufio.Reader) (*Request, error) {
+         .   316.11MB   1059:	req, err := readRequest(b)
+         .          .   1060:	if err != nil {
+         .          .   1061:		return nil, err
+         .          .   1062:	}
+         .          .   1063:
+         .          .   1064:	delete(req.Header, "Host")
+ROUTINE ======================== net/http.newTextprotoReader in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/http/request.go
+         0    25.54MB (flat, cum)  0.11% of Total
+         .          .   1038:func newTextprotoReader(br *bufio.Reader) *textproto.Reader {
+         .    24.04MB   1039:	if v := textprotoReaderPool.Get(); v != nil {
+         .          .   1040:		tr := v.(*textproto.Reader)
+         .          .   1041:		tr.R = br
+         .          .   1042:		return tr
+         .          .   1043:	}
+         .     1.50MB   1044:	return textproto.NewReader(br)
+         .          .   1045:}
+         .          .   1046:
+         .          .   1047:func putTextprotoReader(r *textproto.Reader) {
+         .          .   1048:	r.R = nil
+         .          .   1049:	textprotoReaderPool.Put(r)
+ROUTINE ======================== net/http.readRequest in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/http/request.go
+  176.55MB   316.11MB (flat, cum)  1.36% of Total
+         .          .   1079:func readRequest(b *bufio.Reader) (req *Request, err error) {
+         .    25.54MB   1080:	tp := newTextprotoReader(b)
+         .          .   1081:	defer putTextprotoReader(tp)
+         .          .   1082:
+  176.55MB   176.55MB   1083:	req = new(Request)
+         .          .   1084:
+         .          .   1085:	// First line: GET /index.html HTTP/1.0
+         .          .   1086:	var s string
+         .    11.50MB   1087:	if s, err = tp.ReadLine(); err != nil {
+         .          .   1088:		return nil, err
+         .          .   1089:	}
+         .          .   1090:	defer func() {
+         .          .   1091:		if err == io.EOF {
+         .          .   1092:			err = io.ErrUnexpectedEOF
+         .          .   1093:		}
+         .          .   1094:	}()
+         .          .   1095:
+         .          .   1096:	var ok bool
+         .          .   1097:	req.Method, req.RequestURI, req.Proto, ok = parseRequestLine(s)
+         .          .   1098:	if !ok {
+         .          .   1099:		return nil, badStringError("malformed HTTP request", s)
+         .          .   1100:	}
+         .          .   1101:	if !validMethod(req.Method) {
+         .          .   1102:		return nil, badStringError("invalid method", req.Method)
+         .          .   1103:	}
+         .          .   1104:	rawurl := req.RequestURI
+         .          .   1105:	if req.ProtoMajor, req.ProtoMinor, ok = ParseHTTPVersion(req.Proto); !ok {
+         .          .   1106:		return nil, badStringError("malformed HTTP version", req.Proto)
+         .          .   1107:	}
+         .          .   1108:
+         .          .   1109:	// CONNECT requests are used two different ways, and neither uses a full URL:
+         .          .   1110:	// The standard use is to tunnel HTTPS through an HTTP proxy.
+         .          .   1111:	// It looks like "CONNECT www.google.com:443 HTTP/1.1", and the parameter is
+         .          .   1112:	// just the authority section of a URL. This information should go in req.URL.Host.
+         .          .   1113:	//
+         .          .   1114:	// The net/rpc package also uses CONNECT, but there the parameter is a path
+         .          .   1115:	// that starts with a slash. It can be parsed with the regular URL parser,
+         .          .   1116:	// and the path will end up in req.URL.Path, where it needs to be in order for
+         .          .   1117:	// RPC to work.
+         .          .   1118:	justAuthority := req.Method == "CONNECT" && !strings.HasPrefix(rawurl, "/")
+         .          .   1119:	if justAuthority {
+         .          .   1120:		rawurl = "http://" + rawurl
+         .          .   1121:	}
+         .          .   1122:
+         .    76.51MB   1123:	if req.URL, err = url.ParseRequestURI(rawurl); err != nil {
+         .          .   1124:		return nil, err
+         .          .   1125:	}
+         .          .   1126:
+         .          .   1127:	if justAuthority {
+         .          .   1128:		// Strip the bogus "http://" back off.
+         .          .   1129:		req.URL.Scheme = ""
+         .          .   1130:	}
+         .          .   1131:
+         .          .   1132:	// Subsequent lines: Key: value.
+         .       26MB   1133:	mimeHeader, err := tp.ReadMIMEHeader()
+         .          .   1134:	if err != nil {
+         .          .   1135:		return nil, err
+         .          .   1136:	}
+         .          .   1137:	req.Header = Header(mimeHeader)
+         .          .   1138:	if len(req.Header["Host"]) > 1 {
+ROUTINE ======================== net/http/httptest.(*ResponseRecorder).Write in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/http/httptest/recorder.go
+         0   781.85MB (flat, cum)  3.37% of Total
+         .          .    107:func (rw *ResponseRecorder) Write(buf []byte) (int, error) {
+         .   436.13MB    108:	rw.writeHeader(buf, "")
+         .          .    109:	if rw.Body != nil {
+         .   345.71MB    110:		rw.Body.Write(buf)
+         .          .    111:	}
+         .          .    112:	return len(buf), nil
+         .          .    113:}
+         .          .    114:
+         .          .    115:// WriteString implements [io.StringWriter]. The data in str is written
+ROUTINE ======================== net/http/httptest.(*ResponseRecorder).WriteHeader in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/http/httptest/recorder.go
+         0   231.57MB (flat, cum)     1% of Total
+         .          .    143:func (rw *ResponseRecorder) WriteHeader(code int) {
+         .          .    144:	if rw.wroteHeader {
+         .          .    145:		return
+         .          .    146:	}
+         .          .    147:
+         .          .    148:	checkWriteHeaderCode(code)
+         .          .    149:	rw.Code = code
+         .          .    150:	rw.wroteHeader = true
+         .          .    151:	if rw.HeaderMap == nil {
+         .          .    152:		rw.HeaderMap = make(http.Header)
+         .          .    153:	}
+         .   231.57MB    154:	rw.snapHeader = rw.HeaderMap.Clone()
+         .          .    155:}
+         .          .    156:
+         .          .    157:// Flush implements [http.Flusher]. To test whether Flush was
+         .          .    158:// called, see rw.Flushed.
+         .          .    159:func (rw *ResponseRecorder) Flush() {
+ROUTINE ======================== net/http/httptest.(*ResponseRecorder).writeHeader in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/http/httptest/recorder.go
+         0   436.13MB (flat, cum)  1.88% of Total
+         .          .     83:func (rw *ResponseRecorder) writeHeader(b []byte, str string) {
+         .          .     84:	if rw.wroteHeader {
+         .          .     85:		return
+         .          .     86:	}
+         .          .     87:	if len(str) > 512 {
+         .          .     88:		str = str[:512]
+         .          .     89:	}
+         .          .     90:
+         .          .     91:	m := rw.Header()
+         .          .     92:
+         .          .     93:	_, hasType := m["Content-Type"]
+         .          .     94:	hasTE := m.Get("Transfer-Encoding") != ""
+         .          .     95:	if !hasType && !hasTE {
+         .          .     96:		if b == nil {
+         .          .     97:			b = []byte(str)
+         .          .     98:		}
+         .   204.57MB     99:		m.Set("Content-Type", http.DetectContentType(b))
+         .          .    100:	}
+         .          .    101:
+         .   231.57MB    102:	rw.WriteHeader(200)
+         .          .    103:}
+         .          .    104:
+         .          .    105:// Write implements http.ResponseWriter. The data in buf is written to
+         .          .    106:// rw.Body, if not nil.
+         .          .    107:func (rw *ResponseRecorder) Write(buf []byte) (int, error) {
+ROUTINE ======================== net/http/httptest.NewRecorder in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/http/httptest/recorder.go
+   83.50MB    83.50MB (flat, cum)  0.36% of Total
+         .          .     51:func NewRecorder() *ResponseRecorder {
+   37.50MB    37.50MB     52:	return &ResponseRecorder{
+      24MB       24MB     53:		HeaderMap: make(http.Header),
+      22MB       22MB     54:		Body:      new(bytes.Buffer),
+         .          .     55:		Code:      200,
+         .          .     56:	}
+         .          .     57:}
+         .          .     58:
+         .          .     59:// DefaultRemoteAddr is the default remote address to return in RemoteAddr if
+ROUTINE ======================== net/http/httptest.NewRequest in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/http/httptest/httptest.go
+         0     2.72GB (flat, cum) 11.98% of Total
+         .          .     19:func NewRequest(method, target string, body io.Reader) *http.Request {
+         .     2.72GB     20:	return NewRequestWithContext(context.Background(), method, target, body)
+         .          .     21:}
+         .          .     22:
+         .          .     23:// NewRequestWithContext returns a new incoming server Request, suitable
+         .          .     24:// for passing to an [http.Handler] for testing.
+         .          .     25://
+ROUTINE ======================== net/http/httptest.NewRequestWithContext in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/http/httptest/httptest.go
+      18MB     2.72GB (flat, cum) 11.98% of Total
+         .          .     46:func NewRequestWithContext(ctx context.Context, method, target string, body io.Reader) *http.Request {
+         .          .     47:	if method == "" {
+         .          .     48:		method = "GET"
+         .          .     49:	}
+      18MB     2.56GB     50:	req, err := http.ReadRequest(bufio.NewReader(strings.NewReader(method + " " + target + " HTTP/1.0\r\n\r\n")))
+         .          .     51:	if err != nil {
+         .          .     52:		panic("invalid NewRequest arguments; " + err.Error())
+         .          .     53:	}
+         .   156.55MB     54:	req = req.WithContext(ctx)
+         .          .     55:
+         .          .     56:	// HTTP/1.0 was used above to avoid needing a Host field. Change it to 1.1 here.
+         .          .     57:	req.Proto = "HTTP/1.1"
+         .          .     58:	req.ProtoMinor = 1
+         .          .     59:	req.Close = false
+ROUTINE ======================== net/textproto.(*Reader).ReadLine in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/textproto/reader.go
+   11.50MB    11.50MB (flat, cum)  0.05% of Total
+         .          .     43:func (r *Reader) ReadLine() (string, error) {
+         .          .     44:	line, err := r.readLineSlice(-1)
+   11.50MB    11.50MB     45:	return string(line), err
+         .          .     46:}
+         .          .     47:
+         .          .     48:// ReadLineBytes is like [Reader.ReadLine] but returns a []byte instead of a string.
+         .          .     49:func (r *Reader) ReadLineBytes() ([]byte, error) {
+         .          .     50:	line, err := r.readLineSlice(-1)
+ROUTINE ======================== net/textproto.(*Reader).ReadMIMEHeader in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/textproto/reader.go
+         0       26MB (flat, cum)  0.11% of Total
+         .          .    501:func (r *Reader) ReadMIMEHeader() (MIMEHeader, error) {
+         .       26MB    502:	return readMIMEHeader(r, math.MaxInt64, math.MaxInt64)
+         .          .    503:}
+         .          .    504:
+         .          .    505:// readMIMEHeader is accessed from mime/multipart.
+         .          .    506://go:linkname readMIMEHeader
+         .          .    507:
+ROUTINE ======================== net/textproto.MIMEHeader.Set in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/textproto/header.go
+  204.57MB   204.57MB (flat, cum)  0.88% of Total
+         .          .     21:func (h MIMEHeader) Set(key, value string) {
+  204.57MB   204.57MB     22:	h[CanonicalMIMEHeaderKey(key)] = []string{value}
+         .          .     23:}
+         .          .     24:
+         .          .     25:// Get gets the first value associated with the given key.
+         .          .     26:// It is case insensitive; [CanonicalMIMEHeaderKey] is used
+         .          .     27:// to canonicalize the provided key.
+ROUTINE ======================== net/textproto.NewReader in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/textproto/reader.go
+    1.50MB     1.50MB (flat, cum) 0.0065% of Total
+         .          .     37:func NewReader(r *bufio.Reader) *Reader {
+    1.50MB     1.50MB     38:	return &Reader{R: r}
+         .          .     39:}
+         .          .     40:
+         .          .     41:// ReadLine reads a single line from r,
+         .          .     42:// eliding the final \n or \r\n from the returned string.
+         .          .     43:func (r *Reader) ReadLine() (string, error) {
+ROUTINE ======================== net/textproto.readMIMEHeader in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/textproto/reader.go
+      26MB       26MB (flat, cum)  0.11% of Total
+         .          .    510:func readMIMEHeader(r *Reader, maxMemory, maxHeaders int64) (MIMEHeader, error) {
+         .          .    511:	// Avoid lots of small slice allocations later by allocating one
+         .          .    512:	// large one ahead of time which we'll cut up into smaller
+         .          .    513:	// slices. If this isn't big enough later, we allocate small ones.
+         .          .    514:	var strs []string
+         .          .    515:	hint := r.upcomingHeaderKeys()
+         .          .    516:	if hint > 0 {
+         .          .    517:		if hint > 1000 {
+         .          .    518:			hint = 1000 // set a cap to avoid overallocation
+         .          .    519:		}
+         .          .    520:		strs = make([]string, hint)
+         .          .    521:	}
+         .          .    522:
+      26MB       26MB    523:	m := make(MIMEHeader, hint)
+         .          .    524:
+         .          .    525:	// Account for 400 bytes of overhead for the MIMEHeader, plus 200 bytes per entry.
+         .          .    526:	// Benchmarking map creation as of go1.20, a one-entry MIMEHeader is 416 bytes and large
+         .          .    527:	// MIMEHeaders average about 200 bytes per entry.
+         .          .    528:	maxMemory -= 400
+ROUTINE ======================== net/url.ParseRequestURI in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/url/url.go
+         0    76.51MB (flat, cum)  0.33% of Total
+         .          .    496:func ParseRequestURI(rawURL string) (*URL, error) {
+         .    76.51MB    497:	url, err := parse(rawURL, true)
+         .          .    498:	if err != nil {
+         .          .    499:		return nil, &Error{"parse", rawURL, err}
+         .          .    500:	}
+         .          .    501:	return url, nil
+         .          .    502:}
+ROUTINE ======================== net/url.parse in /opt/homebrew/Cellar/go/1.24.3/libexec/src/net/url/url.go
+   76.51MB    76.51MB (flat, cum)  0.33% of Total
+         .          .    508:func parse(rawURL string, viaRequest bool) (*URL, error) {
+         .          .    509:	var rest string
+         .          .    510:	var err error
+         .          .    511:
+         .          .    512:	if stringContainsCTLByte(rawURL) {
+         .          .    513:		return nil, errors.New("net/url: invalid control character in URL")
+         .          .    514:	}
+         .          .    515:
+         .          .    516:	if rawURL == "" && viaRequest {
+         .          .    517:		return nil, errors.New("empty url")
+         .          .    518:	}
+   76.51MB    76.51MB    519:	url := new(URL)
+         .          .    520:
+         .          .    521:	if rawURL == "*" {
+         .          .    522:		url.Path = "*"
+         .          .    523:		return url, nil
+         .          .    524:	}
+ROUTINE ======================== runtime.(*scavengerState).init in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/mgcscavenge.go
+  512.05kB   512.05kB (flat, cum) 0.0022% of Total
+         .          .    356:func (s *scavengerState) init() {
+         .          .    357:	if s.g != nil {
+         .          .    358:		throw("scavenger state is already wired")
+         .          .    359:	}
+         .          .    360:	lockInit(&s.lock, lockRankScavenge)
+         .          .    361:	s.g = getg()
+         .          .    362:
+  512.05kB   512.05kB    363:	s.timer = new(timer)
+         .          .    364:	f := func(s any, _ uintptr, _ int64) {
+         .          .    365:		s.(*scavengerState).wake()
+         .          .    366:	}
+         .          .    367:	s.timer.init(f, s)
+         .          .    368:
+ROUTINE ======================== runtime.allocm in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/proc.go
+    1.50MB     1.50MB (flat, cum) 0.0065% of Total
+         .          .   2185:func allocm(pp *p, fn func(), id int64) *m {
+         .          .   2186:	allocmLock.rlock()
+         .          .   2187:
+         .          .   2188:	// The caller owns pp, but we may borrow (i.e., acquirep) it. We must
+         .          .   2189:	// disable preemption to ensure it is not stolen, which would make the
+         .          .   2190:	// caller lose ownership.
+         .          .   2191:	acquirem()
+         .          .   2192:
+         .          .   2193:	gp := getg()
+         .          .   2194:	if gp.m.p == 0 {
+         .          .   2195:		acquirep(pp) // temporarily borrow p for mallocs in this function
+         .          .   2196:	}
+         .          .   2197:
+         .          .   2198:	// Release the free M list. We need to do this somewhere and
+         .          .   2199:	// this may free up a stack we can use.
+         .          .   2200:	if sched.freem != nil {
+         .          .   2201:		lock(&sched.lock)
+         .          .   2202:		var newList *m
+         .          .   2203:		for freem := sched.freem; freem != nil; {
+         .          .   2204:			// Wait for freeWait to indicate that freem's stack is unused.
+         .          .   2205:			wait := freem.freeWait.Load()
+         .          .   2206:			if wait == freeMWait {
+         .          .   2207:				next := freem.freelink
+         .          .   2208:				freem.freelink = newList
+         .          .   2209:				newList = freem
+         .          .   2210:				freem = next
+         .          .   2211:				continue
+         .          .   2212:			}
+         .          .   2213:			// Drop any remaining trace resources.
+         .          .   2214:			// Ms can continue to emit events all the way until wait != freeMWait,
+         .          .   2215:			// so it's only safe to call traceThreadDestroy at this point.
+         .          .   2216:			if traceEnabled() || traceShuttingDown() {
+         .          .   2217:				traceThreadDestroy(freem)
+         .          .   2218:			}
+         .          .   2219:			// Free the stack if needed. For freeMRef, there is
+         .          .   2220:			// nothing to do except drop freem from the sched.freem
+         .          .   2221:			// list.
+         .          .   2222:			if wait == freeMStack {
+         .          .   2223:				// stackfree must be on the system stack, but allocm is
+         .          .   2224:				// reachable off the system stack transitively from
+         .          .   2225:				// startm.
+         .          .   2226:				systemstack(func() {
+         .          .   2227:					stackfree(freem.g0.stack)
+         .          .   2228:				})
+         .          .   2229:			}
+         .          .   2230:			freem = freem.freelink
+         .          .   2231:		}
+         .          .   2232:		sched.freem = newList
+         .          .   2233:		unlock(&sched.lock)
+         .          .   2234:	}
+         .          .   2235:
+    1.50MB     1.50MB   2236:	mp := new(m)
+         .          .   2237:	mp.mstartfn = fn
+         .          .   2238:	mcommoninit(mp, id)
+         .          .   2239:
+         .          .   2240:	// In case of cgo or Solaris or illumos or Darwin, pthread_create will make us a stack.
+         .          .   2241:	// Windows and Plan 9 will layout sched stack on OS stack.
+ROUTINE ======================== runtime.bgscavenge in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/mgcscavenge.go
+         0   512.05kB (flat, cum) 0.0022% of Total
+         .          .    649:func bgscavenge(c chan int) {
+         .   512.05kB    650:	scavenger.init()
+         .          .    651:
+         .          .    652:	c <- 1
+         .          .    653:	scavenger.park()
+         .          .    654:
+         .          .    655:	for {
+ROUTINE ======================== runtime.main in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/proc.go
+         0     1.16MB (flat, cum) 0.005% of Total
+         .          .    147:func main() {
+         .          .    148:	mp := getg().m
+         .          .    149:
+         .          .    150:	// Racectx of m0->g0 is used only as the parent of the main goroutine.
+         .          .    151:	// It must not be used for anything else.
+         .          .    152:	mp.g0.racectx = 0
+         .          .    153:
+         .          .    154:	// Max stack size is 1 GB on 64-bit, 250 MB on 32-bit.
+         .          .    155:	// Using decimal instead of binary GB and MB because
+         .          .    156:	// they look nicer in the stack overflow failure message.
+         .          .    157:	if goarch.PtrSize == 8 {
+         .          .    158:		maxstacksize = 1000000000
+         .          .    159:	} else {
+         .          .    160:		maxstacksize = 250000000
+         .          .    161:	}
+         .          .    162:
+         .          .    163:	// An upper limit for max stack size. Used to avoid random crashes
+         .          .    164:	// after calling SetMaxStack and trying to allocate a stack that is too big,
+         .          .    165:	// since stackalloc works with 32-bit sizes.
+         .          .    166:	maxstackceiling = 2 * maxstacksize
+         .          .    167:
+         .          .    168:	// Allow newproc to start new Ms.
+         .          .    169:	mainStarted = true
+         .          .    170:
+         .          .    171:	if haveSysmon {
+         .          .    172:		systemstack(func() {
+         .          .    173:			newm(sysmon, nil, -1)
+         .          .    174:		})
+         .          .    175:	}
+         .          .    176:
+         .          .    177:	// Lock the main goroutine onto this, the main OS thread,
+         .          .    178:	// during initialization. Most programs won't care, but a few
+         .          .    179:	// do require certain calls to be made by the main thread.
+         .          .    180:	// Those can arrange for main.main to run in the main thread
+         .          .    181:	// by calling runtime.LockOSThread during initialization
+         .          .    182:	// to preserve the lock.
+         .          .    183:	lockOSThread()
+         .          .    184:
+         .          .    185:	if mp != &m0 {
+         .          .    186:		throw("runtime.main not on m0")
+         .          .    187:	}
+         .          .    188:
+         .          .    189:	// Record when the world started.
+         .          .    190:	// Must be before doInit for tracing init.
+         .          .    191:	runtimeInitTime = nanotime()
+         .          .    192:	if runtimeInitTime == 0 {
+         .          .    193:		throw("nanotime returning zero")
+         .          .    194:	}
+         .          .    195:
+         .          .    196:	if debug.inittrace != 0 {
+         .          .    197:		inittrace.id = getg().goid
+         .          .    198:		inittrace.active = true
+         .          .    199:	}
+         .          .    200:
+         .          .    201:	doInit(runtime_inittasks) // Must be before defer.
+         .          .    202:
+         .          .    203:	// Defer unlock so that runtime.Goexit during init does the unlock too.
+         .          .    204:	needUnlock := true
+         .          .    205:	defer func() {
+         .          .    206:		if needUnlock {
+         .          .    207:			unlockOSThread()
+         .          .    208:		}
+         .          .    209:	}()
+         .          .    210:
+         .          .    211:	gcenable()
+         .          .    212:
+         .          .    213:	main_init_done = make(chan bool)
+         .          .    214:	if iscgo {
+         .          .    215:		if _cgo_pthread_key_created == nil {
+         .          .    216:			throw("_cgo_pthread_key_created missing")
+         .          .    217:		}
+         .          .    218:
+         .          .    219:		if _cgo_thread_start == nil {
+         .          .    220:			throw("_cgo_thread_start missing")
+         .          .    221:		}
+         .          .    222:		if GOOS != "windows" {
+         .          .    223:			if _cgo_setenv == nil {
+         .          .    224:				throw("_cgo_setenv missing")
+         .          .    225:			}
+         .          .    226:			if _cgo_unsetenv == nil {
+         .          .    227:				throw("_cgo_unsetenv missing")
+         .          .    228:			}
+         .          .    229:		}
+         .          .    230:		if _cgo_notify_runtime_init_done == nil {
+         .          .    231:			throw("_cgo_notify_runtime_init_done missing")
+         .          .    232:		}
+         .          .    233:
+         .          .    234:		// Set the x_crosscall2_ptr C function pointer variable point to crosscall2.
+         .          .    235:		if set_crosscall2 == nil {
+         .          .    236:			throw("set_crosscall2 missing")
+         .          .    237:		}
+         .          .    238:		set_crosscall2()
+         .          .    239:
+         .          .    240:		// Start the template thread in case we enter Go from
+         .          .    241:		// a C-created thread and need to create a new thread.
+         .          .    242:		startTemplateThread()
+         .          .    243:		cgocall(_cgo_notify_runtime_init_done, nil)
+         .          .    244:	}
+         .          .    245:
+         .          .    246:	// Run the initializing tasks. Depending on build mode this
+         .          .    247:	// list can arrive a few different ways, but it will always
+         .          .    248:	// contain the init tasks computed by the linker for all the
+         .          .    249:	// packages in the program (excluding those added at runtime
+         .          .    250:	// by package plugin). Run through the modules in dependency
+         .          .    251:	// order (the order they are initialized by the dynamic
+         .          .    252:	// loader, i.e. they are added to the moduledata linked list).
+         .          .    253:	for m := &firstmoduledata; m != nil; m = m.next {
+         .          .    254:		doInit(m.inittasks)
+         .          .    255:	}
+         .          .    256:
+         .          .    257:	// Disable init tracing after main init done to avoid overhead
+         .          .    258:	// of collecting statistics in malloc and newproc
+         .          .    259:	inittrace.active = false
+         .          .    260:
+         .          .    261:	close(main_init_done)
+         .          .    262:
+         .          .    263:	needUnlock = false
+         .          .    264:	unlockOSThread()
+         .          .    265:
+         .          .    266:	if isarchive || islibrary {
+         .          .    267:		// A program compiled with -buildmode=c-archive or c-shared
+         .          .    268:		// has a main, but it is not executed.
+         .          .    269:		if GOARCH == "wasm" {
+         .          .    270:			// On Wasm, pause makes it return to the host.
+         .          .    271:			// Unlike cgo callbacks where Ms are created on demand,
+         .          .    272:			// on Wasm we have only one M. So we keep this M (and this
+         .          .    273:			// G) for callbacks.
+         .          .    274:			// Using the caller's SP unwinds this frame and backs to
+         .          .    275:			// goexit. The -16 is: 8 for goexit's (fake) return PC,
+         .          .    276:			// and pause's epilogue pops 8.
+         .          .    277:			pause(sys.GetCallerSP() - 16) // should not return
+         .          .    278:			panic("unreachable")
+         .          .    279:		}
+         .          .    280:		return
+         .          .    281:	}
+         .          .    282:	fn := main_main // make an indirect call, as the linker doesn't know the address of the main package when laying down the runtime
+         .     1.16MB    283:	fn()
+         .          .    284:	if raceenabled {
+         .          .    285:		runExitHooks(0) // run hooks now, since racefini does not return
+         .          .    286:		racefini()
+         .          .    287:	}
+         .          .    288:
+ROUTINE ======================== runtime.mcall in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/asm_arm64.s
+         0      513kB (flat, cum) 0.0022% of Total
+         .          .    167:TEXT runtime·mcall<ABIInternal>(SB), NOSPLIT|NOFRAME, $0-8
+         .          .    168:	MOVD	R0, R26				// context
+         .          .    169:
+         .          .    170:	// Save caller state in g->sched
+         .          .    171:	MOVD	RSP, R0
+         .          .    172:	MOVD	R0, (g_sched+gobuf_sp)(g)
+         .          .    173:	MOVD	R29, (g_sched+gobuf_bp)(g)
+         .          .    174:	MOVD	LR, (g_sched+gobuf_pc)(g)
+         .          .    175:	MOVD	$0, (g_sched+gobuf_lr)(g)
+         .          .    176:
+         .          .    177:	// Switch to m->g0 & its stack, call fn.
+         .          .    178:	MOVD	g, R3
+         .          .    179:	MOVD	g_m(g), R8
+         .          .    180:	MOVD	m_g0(R8), g
+         .          .    181:	BL	runtime·save_g(SB)
+         .          .    182:	CMP	g, R3
+         .          .    183:	BNE	2(PC)
+         .          .    184:	B	runtime·badmcall(SB)
+         .          .    185:
+         .          .    186:	MOVD	(g_sched+gobuf_sp)(g), R0
+         .          .    187:	MOVD	R0, RSP	// sp = m->g0->sched.sp
+         .          .    188:	MOVD	(g_sched+gobuf_bp)(g), R29
+         .          .    189:	MOVD	R3, R0				// arg = g
+         .          .    190:	MOVD	$0, -16(RSP)			// dummy LR
+         .          .    191:	SUB	$16, RSP
+         .          .    192:	MOVD	0(R26), R4			// code pointer
+         .      513kB    193:	BL	(R4)
+         .          .    194:	B	runtime·badmcall2(SB)
+         .          .    195:
+         .          .    196:// systemstack_switch is a dummy routine that systemstack leaves at the bottom
+         .          .    197:// of the G stack. We need to distinguish the routine that
+         .          .    198:// lives at the bottom of the G stack from the one that lives
+ROUTINE ======================== runtime.mstart in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/asm_arm64.s
+         0        1MB (flat, cum) 0.0043% of Total
+         .          .    128:TEXT runtime·mstart(SB),NOSPLIT|TOPFRAME,$0
+         .        1MB    129:	BL	runtime·mstart0(SB)
+         .          .    130:	RET // not reached
+         .          .    131:
+         .          .    132:/*
+         .          .    133: *  go-routine
+         .          .    134: */
+ROUTINE ======================== runtime.mstart0 in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/proc.go
+         0        1MB (flat, cum) 0.0043% of Total
+         .          .   1782:func mstart0() {
+         .          .   1783:	gp := getg()
+         .          .   1784:
+         .          .   1785:	osStack := gp.stack.lo == 0
+         .          .   1786:	if osStack {
+         .          .   1787:		// Initialize stack bounds from system stack.
+         .          .   1788:		// Cgo may have left stack size in stack.hi.
+         .          .   1789:		// minit may update the stack bounds.
+         .          .   1790:		//
+         .          .   1791:		// Note: these bounds may not be very accurate.
+         .          .   1792:		// We set hi to &size, but there are things above
+         .          .   1793:		// it. The 1024 is supposed to compensate this,
+         .          .   1794:		// but is somewhat arbitrary.
+         .          .   1795:		size := gp.stack.hi
+         .          .   1796:		if size == 0 {
+         .          .   1797:			size = 16384 * sys.StackGuardMultiplier
+         .          .   1798:		}
+         .          .   1799:		gp.stack.hi = uintptr(noescape(unsafe.Pointer(&size)))
+         .          .   1800:		gp.stack.lo = gp.stack.hi - size + 1024
+         .          .   1801:	}
+         .          .   1802:	// Initialize stack guard so that we can start calling regular
+         .          .   1803:	// Go code.
+         .          .   1804:	gp.stackguard0 = gp.stack.lo + stackGuard
+         .          .   1805:	// This is the g0, so we can also call go:systemstack
+         .          .   1806:	// functions, which check stackguard1.
+         .          .   1807:	gp.stackguard1 = gp.stackguard0
+         .        1MB   1808:	mstart1()
+         .          .   1809:
+         .          .   1810:	// Exit this thread.
+         .          .   1811:	if mStackIsSystemAllocated() {
+         .          .   1812:		// Windows, Solaris, illumos, Darwin, AIX and Plan 9 always system-allocate
+         .          .   1813:		// the stack, but put it in gp.stack before mstart,
+ROUTINE ======================== runtime.mstart1 in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/proc.go
+         0        1MB (flat, cum) 0.0043% of Total
+         .          .   1824:func mstart1() {
+         .          .   1825:	gp := getg()
+         .          .   1826:
+         .          .   1827:	if gp != gp.m.g0 {
+         .          .   1828:		throw("bad runtime·mstart")
+         .          .   1829:	}
+         .          .   1830:
+         .          .   1831:	// Set up m.g0.sched as a label returning to just
+         .          .   1832:	// after the mstart1 call in mstart0 above, for use by goexit0 and mcall.
+         .          .   1833:	// We're never coming back to mstart1 after we call schedule,
+         .          .   1834:	// so other calls can reuse the current frame.
+         .          .   1835:	// And goexit0 does a gogo that needs to return from mstart1
+         .          .   1836:	// and let mstart0 exit the thread.
+         .          .   1837:	gp.sched.g = guintptr(unsafe.Pointer(gp))
+         .          .   1838:	gp.sched.pc = sys.GetCallerPC()
+         .          .   1839:	gp.sched.sp = sys.GetCallerSP()
+         .          .   1840:
+         .          .   1841:	asminit()
+         .          .   1842:	minit()
+         .          .   1843:
+         .          .   1844:	// Install signal handlers; after minit so that minit can
+         .          .   1845:	// prepare the thread to be able to handle the signals.
+         .          .   1846:	if gp.m == &m0 {
+         .          .   1847:		mstartm0()
+         .          .   1848:	}
+         .          .   1849:
+         .          .   1850:	if debug.dataindependenttiming == 1 {
+         .          .   1851:		sys.EnableDIT()
+         .          .   1852:	}
+         .          .   1853:
+         .          .   1854:	if fn := gp.m.mstartfn; fn != nil {
+         .          .   1855:		fn()
+         .          .   1856:	}
+         .          .   1857:
+         .          .   1858:	if gp.m != &m0 {
+         .          .   1859:		acquirep(gp.m.nextp.ptr())
+         .          .   1860:		gp.m.nextp = 0
+         .          .   1861:	}
+         .        1MB   1862:	schedule()
+         .          .   1863:}
+         .          .   1864:
+         .          .   1865:// mstartm0 implements part of mstart1 that only runs on the m0.
+         .          .   1866://
+         .          .   1867:// Write barriers are allowed here because we know the GC can't be
+ROUTINE ======================== runtime.newm in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/proc.go
+         0     1.50MB (flat, cum) 0.0065% of Total
+         .          .   2759:func newm(fn func(), pp *p, id int64) {
+         .          .   2760:	// allocm adds a new M to allm, but they do not start until created by
+         .          .   2761:	// the OS in newm1 or the template thread.
+         .          .   2762:	//
+         .          .   2763:	// doAllThreadsSyscall requires that every M in allm will eventually
+         .          .   2764:	// start and be signal-able, even with a STW.
+         .          .   2765:	//
+         .          .   2766:	// Disable preemption here until we start the thread to ensure that
+         .          .   2767:	// newm is not preempted between allocm and starting the new thread,
+         .          .   2768:	// ensuring that anything added to allm is guaranteed to eventually
+         .          .   2769:	// start.
+         .          .   2770:	acquirem()
+         .          .   2771:
+         .     1.50MB   2772:	mp := allocm(pp, fn, id)
+         .          .   2773:	mp.nextp.set(pp)
+         .          .   2774:	mp.sigmask = initSigmask
+         .          .   2775:	if gp := getg(); gp != nil && gp.m != nil && (gp.m.lockedExt != 0 || gp.m.incgo) && GOOS != "plan9" {
+         .          .   2776:		// We're on a locked M or a thread that may have been
+         .          .   2777:		// started by C. The kernel state of this thread may
+ROUTINE ======================== runtime.park_m in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/proc.go
+         0      513kB (flat, cum) 0.0022% of Total
+         .          .   4093:func park_m(gp *g) {
+         .          .   4094:	mp := getg().m
+         .          .   4095:
+         .          .   4096:	trace := traceAcquire()
+         .          .   4097:
+         .          .   4098:	// If g is in a synctest group, we don't want to let the group
+         .          .   4099:	// become idle until after the waitunlockf (if any) has confirmed
+         .          .   4100:	// that the park is happening.
+         .          .   4101:	// We need to record gp.syncGroup here, since waitunlockf can change it.
+         .          .   4102:	sg := gp.syncGroup
+         .          .   4103:	if sg != nil {
+         .          .   4104:		sg.incActive()
+         .          .   4105:	}
+         .          .   4106:
+         .          .   4107:	if trace.ok() {
+         .          .   4108:		// Trace the event before the transition. It may take a
+         .          .   4109:		// stack trace, but we won't own the stack after the
+         .          .   4110:		// transition anymore.
+         .          .   4111:		trace.GoPark(mp.waitTraceBlockReason, mp.waitTraceSkip)
+         .          .   4112:	}
+         .          .   4113:	// N.B. Not using casGToWaiting here because the waitreason is
+         .          .   4114:	// set by park_m's caller.
+         .          .   4115:	casgstatus(gp, _Grunning, _Gwaiting)
+         .          .   4116:	if trace.ok() {
+         .          .   4117:		traceRelease(trace)
+         .          .   4118:	}
+         .          .   4119:
+         .          .   4120:	dropg()
+         .          .   4121:
+         .          .   4122:	if fn := mp.waitunlockf; fn != nil {
+         .          .   4123:		ok := fn(gp, mp.waitlock)
+         .          .   4124:		mp.waitunlockf = nil
+         .          .   4125:		mp.waitlock = nil
+         .          .   4126:		if !ok {
+         .          .   4127:			trace := traceAcquire()
+         .          .   4128:			casgstatus(gp, _Gwaiting, _Grunnable)
+         .          .   4129:			if sg != nil {
+         .          .   4130:				sg.decActive()
+         .          .   4131:			}
+         .          .   4132:			if trace.ok() {
+         .          .   4133:				trace.GoUnpark(gp, 2)
+         .          .   4134:				traceRelease(trace)
+         .          .   4135:			}
+         .          .   4136:			execute(gp, true) // Schedule it back, never returns.
+         .          .   4137:		}
+         .          .   4138:	}
+         .          .   4139:
+         .          .   4140:	if sg != nil {
+         .          .   4141:		sg.decActive()
+         .          .   4142:	}
+         .          .   4143:
+         .      513kB   4144:	schedule()
+         .          .   4145:}
+         .          .   4146:
+         .          .   4147:func goschedImpl(gp *g, preempted bool) {
+         .          .   4148:	trace := traceAcquire()
+         .          .   4149:	status := readgstatus(gp)
+ROUTINE ======================== runtime.procresize in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/proc.go
+  516.64kB   516.64kB (flat, cum) 0.0022% of Total
+         .          .   5730:func procresize(nprocs int32) *p {
+         .          .   5731:	assertLockHeld(&sched.lock)
+         .          .   5732:	assertWorldStopped()
+         .          .   5733:
+         .          .   5734:	old := gomaxprocs
+         .          .   5735:	if old < 0 || nprocs <= 0 {
+         .          .   5736:		throw("procresize: invalid arg")
+         .          .   5737:	}
+         .          .   5738:	trace := traceAcquire()
+         .          .   5739:	if trace.ok() {
+         .          .   5740:		trace.Gomaxprocs(nprocs)
+         .          .   5741:		traceRelease(trace)
+         .          .   5742:	}
+         .          .   5743:
+         .          .   5744:	// update statistics
+         .          .   5745:	now := nanotime()
+         .          .   5746:	if sched.procresizetime != 0 {
+         .          .   5747:		sched.totaltime += int64(old) * (now - sched.procresizetime)
+         .          .   5748:	}
+         .          .   5749:	sched.procresizetime = now
+         .          .   5750:
+         .          .   5751:	maskWords := (nprocs + 31) / 32
+         .          .   5752:
+         .          .   5753:	// Grow allp if necessary.
+         .          .   5754:	if nprocs > int32(len(allp)) {
+         .          .   5755:		// Synchronize with retake, which could be running
+         .          .   5756:		// concurrently since it doesn't run on a P.
+         .          .   5757:		lock(&allpLock)
+         .          .   5758:		if nprocs <= int32(cap(allp)) {
+         .          .   5759:			allp = allp[:nprocs]
+         .          .   5760:		} else {
+         .          .   5761:			nallp := make([]*p, nprocs)
+         .          .   5762:			// Copy everything up to allp's cap so we
+         .          .   5763:			// never lose old allocated Ps.
+         .          .   5764:			copy(nallp, allp[:cap(allp)])
+         .          .   5765:			allp = nallp
+         .          .   5766:		}
+         .          .   5767:
+         .          .   5768:		if maskWords <= int32(cap(idlepMask)) {
+         .          .   5769:			idlepMask = idlepMask[:maskWords]
+         .          .   5770:			timerpMask = timerpMask[:maskWords]
+         .          .   5771:		} else {
+         .          .   5772:			nidlepMask := make([]uint32, maskWords)
+         .          .   5773:			// No need to copy beyond len, old Ps are irrelevant.
+         .          .   5774:			copy(nidlepMask, idlepMask)
+         .          .   5775:			idlepMask = nidlepMask
+         .          .   5776:
+         .          .   5777:			ntimerpMask := make([]uint32, maskWords)
+         .          .   5778:			copy(ntimerpMask, timerpMask)
+         .          .   5779:			timerpMask = ntimerpMask
+         .          .   5780:		}
+         .          .   5781:		unlock(&allpLock)
+         .          .   5782:	}
+         .          .   5783:
+         .          .   5784:	// initialize new P's
+         .          .   5785:	for i := old; i < nprocs; i++ {
+         .          .   5786:		pp := allp[i]
+         .          .   5787:		if pp == nil {
+  516.64kB   516.64kB   5788:			pp = new(p)
+         .          .   5789:		}
+         .          .   5790:		pp.init(i)
+         .          .   5791:		atomicstorep(unsafe.Pointer(&allp[i]), unsafe.Pointer(pp))
+         .          .   5792:	}
+         .          .   5793:
+ROUTINE ======================== runtime.resetspinning in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/proc.go
+         0     1.50MB (flat, cum) 0.0065% of Total
+         .          .   3872:func resetspinning() {
+         .          .   3873:	gp := getg()
+         .          .   3874:	if !gp.m.spinning {
+         .          .   3875:		throw("resetspinning: not a spinning m")
+         .          .   3876:	}
+         .          .   3877:	gp.m.spinning = false
+         .          .   3878:	nmspinning := sched.nmspinning.Add(-1)
+         .          .   3879:	if nmspinning < 0 {
+         .          .   3880:		throw("findrunnable: negative nmspinning")
+         .          .   3881:	}
+         .          .   3882:	// M wakeup policy is deliberately somewhat conservative, so check if we
+         .          .   3883:	// need to wakeup another P here. See "Worker thread parking/unparking"
+         .          .   3884:	// comment at the top of the file for details.
+         .     1.50MB   3885:	wakep()
+         .          .   3886:}
+         .          .   3887:
+         .          .   3888:// injectglist adds each runnable G on the list to some run queue,
+         .          .   3889:// and clears glist. If there is no current P, they are added to the
+         .          .   3890:// global queue, and up to npidle M's are started to run them.
+ROUTINE ======================== runtime.rt0_go in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/asm_arm64.s
+         0   516.64kB (flat, cum) 0.0022% of Total
+         .          .     11:TEXT runtime·rt0_go(SB),NOSPLIT|TOPFRAME,$0
+         .          .     12:	// SP = stack; R0 = argc; R1 = argv
+         .          .     13:
+         .          .     14:	SUB	$32, RSP
+         .          .     15:	MOVW	R0, 8(RSP) // argc
+         .          .     16:	MOVD	R1, 16(RSP) // argv
+         .          .     17:
+         .          .     18:#ifdef TLS_darwin
+         .          .     19:	// Initialize TLS.
+         .          .     20:	MOVD	ZR, g // clear g, make sure it's not junk.
+         .          .     21:	SUB	$32, RSP
+         .          .     22:	MRS_TPIDR_R0
+         .          .     23:	AND	$~7, R0
+         .          .     24:	MOVD	R0, 16(RSP)             // arg2: TLS base
+         .          .     25:	MOVD	$runtime·tls_g(SB), R2
+         .          .     26:	MOVD	R2, 8(RSP)              // arg1: &tlsg
+         .          .     27:	BL	·tlsinit(SB)
+         .          .     28:	ADD	$32, RSP
+         .          .     29:#endif
+         .          .     30:
+         .          .     31:	// create istack out of the given (operating system) stack.
+         .          .     32:	// _cgo_init may update stackguard.
+         .          .     33:	MOVD	$runtime·g0(SB), g
+         .          .     34:	MOVD	RSP, R7
+         .          .     35:	MOVD	$(-64*1024)(R7), R0
+         .          .     36:	MOVD	R0, g_stackguard0(g)
+         .          .     37:	MOVD	R0, g_stackguard1(g)
+         .          .     38:	MOVD	R0, (g_stack+stack_lo)(g)
+         .          .     39:	MOVD	R7, (g_stack+stack_hi)(g)
+         .          .     40:
+         .          .     41:	// if there is a _cgo_init, call it using the gcc ABI.
+         .          .     42:	MOVD	_cgo_init(SB), R12
+         .          .     43:	CBZ	R12, nocgo
+         .          .     44:
+         .          .     45:#ifdef GOOS_android
+         .          .     46:	MRS_TPIDR_R0			// load TLS base pointer
+         .          .     47:	MOVD	R0, R3			// arg 3: TLS base pointer
+         .          .     48:	MOVD	$runtime·tls_g(SB), R2 	// arg 2: &tls_g
+         .          .     49:#else
+         .          .     50:	MOVD	$0, R2		        // arg 2: not used when using platform's TLS
+         .          .     51:#endif
+         .          .     52:	MOVD	$setg_gcc<>(SB), R1	// arg 1: setg
+         .          .     53:	MOVD	g, R0			// arg 0: G
+         .          .     54:	SUB	$16, RSP		// reserve 16 bytes for sp-8 where fp may be saved.
+         .          .     55:	BL	(R12)
+         .          .     56:	ADD	$16, RSP
+         .          .     57:
+         .          .     58:nocgo:
+         .          .     59:	BL	runtime·save_g(SB)
+         .          .     60:	// update stackguard after _cgo_init
+         .          .     61:	MOVD	(g_stack+stack_lo)(g), R0
+         .          .     62:	ADD	$const_stackGuard, R0
+         .          .     63:	MOVD	R0, g_stackguard0(g)
+         .          .     64:	MOVD	R0, g_stackguard1(g)
+         .          .     65:
+         .          .     66:	// set the per-goroutine and per-mach "registers"
+         .          .     67:	MOVD	$runtime·m0(SB), R0
+         .          .     68:
+         .          .     69:	// save m->g0 = g0
+         .          .     70:	MOVD	g, m_g0(R0)
+         .          .     71:	// save m0 to g0->m
+         .          .     72:	MOVD	R0, g_m(g)
+         .          .     73:
+         .          .     74:	BL	runtime·check(SB)
+         .          .     75:
+         .          .     76:#ifdef GOOS_windows
+         .          .     77:	BL	runtime·wintls(SB)
+         .          .     78:#endif
+         .          .     79:
+         .          .     80:	MOVW	8(RSP), R0	// copy argc
+         .          .     81:	MOVW	R0, -8(RSP)
+         .          .     82:	MOVD	16(RSP), R0		// copy argv
+         .          .     83:	MOVD	R0, 0(RSP)
+         .          .     84:	BL	runtime·args(SB)
+         .          .     85:	BL	runtime·osinit(SB)
+         .   516.64kB     86:	BL	runtime·schedinit(SB)
+         .          .     87:
+         .          .     88:	// create a new goroutine to start program
+         .          .     89:	MOVD	$runtime·mainPC(SB), R0		// entry
+         .          .     90:	SUB	$16, RSP
+         .          .     91:	MOVD	R0, 8(RSP) // arg
+ROUTINE ======================== runtime.schedinit in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/proc.go
+         0   516.64kB (flat, cum) 0.0022% of Total
+         .          .    798:func schedinit() {
+         .          .    799:	lockInit(&sched.lock, lockRankSched)
+         .          .    800:	lockInit(&sched.sysmonlock, lockRankSysmon)
+         .          .    801:	lockInit(&sched.deferlock, lockRankDefer)
+         .          .    802:	lockInit(&sched.sudoglock, lockRankSudog)
+         .          .    803:	lockInit(&deadlock, lockRankDeadlock)
+         .          .    804:	lockInit(&paniclk, lockRankPanic)
+         .          .    805:	lockInit(&allglock, lockRankAllg)
+         .          .    806:	lockInit(&allpLock, lockRankAllp)
+         .          .    807:	lockInit(&reflectOffs.lock, lockRankReflectOffs)
+         .          .    808:	lockInit(&finlock, lockRankFin)
+         .          .    809:	lockInit(&cpuprof.lock, lockRankCpuprof)
+         .          .    810:	allocmLock.init(lockRankAllocmR, lockRankAllocmRInternal, lockRankAllocmW)
+         .          .    811:	execLock.init(lockRankExecR, lockRankExecRInternal, lockRankExecW)
+         .          .    812:	traceLockInit()
+         .          .    813:	// Enforce that this lock is always a leaf lock.
+         .          .    814:	// All of this lock's critical sections should be
+         .          .    815:	// extremely short.
+         .          .    816:	lockInit(&memstats.heapStats.noPLock, lockRankLeafRank)
+         .          .    817:
+         .          .    818:	lockVerifyMSize()
+         .          .    819:
+         .          .    820:	// raceinit must be the first call to race detector.
+         .          .    821:	// In particular, it must be done before mallocinit below calls racemapshadow.
+         .          .    822:	gp := getg()
+         .          .    823:	if raceenabled {
+         .          .    824:		gp.racectx, raceprocctx0 = raceinit()
+         .          .    825:	}
+         .          .    826:
+         .          .    827:	sched.maxmcount = 10000
+         .          .    828:	crashFD.Store(^uintptr(0))
+         .          .    829:
+         .          .    830:	// The world starts stopped.
+         .          .    831:	worldStopped()
+         .          .    832:
+         .          .    833:	ticks.init() // run as early as possible
+         .          .    834:	moduledataverify()
+         .          .    835:	stackinit()
+         .          .    836:	mallocinit()
+         .          .    837:	godebug := getGodebugEarly()
+         .          .    838:	cpuinit(godebug) // must run before alginit
+         .          .    839:	randinit()       // must run before alginit, mcommoninit
+         .          .    840:	alginit()        // maps, hash, rand must not be used before this call
+         .          .    841:	mcommoninit(gp.m, -1)
+         .          .    842:	modulesinit()   // provides activeModules
+         .          .    843:	typelinksinit() // uses maps, activeModules
+         .          .    844:	itabsinit()     // uses activeModules
+         .          .    845:	stkobjinit()    // must run before GC starts
+         .          .    846:
+         .          .    847:	sigsave(&gp.m.sigmask)
+         .          .    848:	initSigmask = gp.m.sigmask
+         .          .    849:
+         .          .    850:	goargs()
+         .          .    851:	goenvs()
+         .          .    852:	secure()
+         .          .    853:	checkfds()
+         .          .    854:	parsedebugvars()
+         .          .    855:	gcinit()
+         .          .    856:
+         .          .    857:	// Allocate stack space that can be used when crashing due to bad stack
+         .          .    858:	// conditions, e.g. morestack on g0.
+         .          .    859:	gcrash.stack = stackalloc(16384)
+         .          .    860:	gcrash.stackguard0 = gcrash.stack.lo + 1000
+         .          .    861:	gcrash.stackguard1 = gcrash.stack.lo + 1000
+         .          .    862:
+         .          .    863:	// if disableMemoryProfiling is set, update MemProfileRate to 0 to turn off memprofile.
+         .          .    864:	// Note: parsedebugvars may update MemProfileRate, but when disableMemoryProfiling is
+         .          .    865:	// set to true by the linker, it means that nothing is consuming the profile, it is
+         .          .    866:	// safe to set MemProfileRate to 0.
+         .          .    867:	if disableMemoryProfiling {
+         .          .    868:		MemProfileRate = 0
+         .          .    869:	}
+         .          .    870:
+         .          .    871:	// mcommoninit runs before parsedebugvars, so init profstacks again.
+         .          .    872:	mProfStackInit(gp.m)
+         .          .    873:
+         .          .    874:	lock(&sched.lock)
+         .          .    875:	sched.lastpoll.Store(nanotime())
+         .          .    876:	procs := ncpu
+         .          .    877:	if n, ok := atoi32(gogetenv("GOMAXPROCS")); ok && n > 0 {
+         .          .    878:		procs = n
+         .          .    879:	}
+         .   516.64kB    880:	if procresize(procs) != nil {
+         .          .    881:		throw("unknown runnable goroutine during bootstrap")
+         .          .    882:	}
+         .          .    883:	unlock(&sched.lock)
+         .          .    884:
+         .          .    885:	// World is effectively started now, as P's can run.
+ROUTINE ======================== runtime.schedule in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/proc.go
+         0     1.50MB (flat, cum) 0.0065% of Total
+         .          .   3991:func schedule() {
+         .          .   3992:	mp := getg().m
+         .          .   3993:
+         .          .   3994:	if mp.locks != 0 {
+         .          .   3995:		throw("schedule: holding locks")
+         .          .   3996:	}
+         .          .   3997:
+         .          .   3998:	if mp.lockedg != 0 {
+         .          .   3999:		stoplockedm()
+         .          .   4000:		execute(mp.lockedg.ptr(), false) // Never returns.
+         .          .   4001:	}
+         .          .   4002:
+         .          .   4003:	// We should not schedule away from a g that is executing a cgo call,
+         .          .   4004:	// since the cgo call is using the m's g0 stack.
+         .          .   4005:	if mp.incgo {
+         .          .   4006:		throw("schedule: in cgo")
+         .          .   4007:	}
+         .          .   4008:
+         .          .   4009:top:
+         .          .   4010:	pp := mp.p.ptr()
+         .          .   4011:	pp.preempt = false
+         .          .   4012:
+         .          .   4013:	// Safety check: if we are spinning, the run queue should be empty.
+         .          .   4014:	// Check this before calling checkTimers, as that might call
+         .          .   4015:	// goready to put a ready goroutine on the local run queue.
+         .          .   4016:	if mp.spinning && (pp.runnext != 0 || pp.runqhead != pp.runqtail) {
+         .          .   4017:		throw("schedule: spinning with local work")
+         .          .   4018:	}
+         .          .   4019:
+         .          .   4020:	gp, inheritTime, tryWakeP := findRunnable() // blocks until work is available
+         .          .   4021:
+         .          .   4022:	if debug.dontfreezetheworld > 0 && freezing.Load() {
+         .          .   4023:		// See comment in freezetheworld. We don't want to perturb
+         .          .   4024:		// scheduler state, so we didn't gcstopm in findRunnable, but
+         .          .   4025:		// also don't want to allow new goroutines to run.
+         .          .   4026:		//
+         .          .   4027:		// Deadlock here rather than in the findRunnable loop so if
+         .          .   4028:		// findRunnable is stuck in a loop we don't perturb that
+         .          .   4029:		// either.
+         .          .   4030:		lock(&deadlock)
+         .          .   4031:		lock(&deadlock)
+         .          .   4032:	}
+         .          .   4033:
+         .          .   4034:	// This thread is going to run a goroutine and is not spinning anymore,
+         .          .   4035:	// so if it was marked as spinning we need to reset it now and potentially
+         .          .   4036:	// start a new spinning M.
+         .          .   4037:	if mp.spinning {
+         .     1.50MB   4038:		resetspinning()
+         .          .   4039:	}
+         .          .   4040:
+         .          .   4041:	if sched.disable.user && !schedEnabled(gp) {
+         .          .   4042:		// Scheduling of this goroutine is disabled. Put it on
+         .          .   4043:		// the list of pending runnable goroutines for when we
+ROUTINE ======================== runtime.startm in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/proc.go
+         0     1.50MB (flat, cum) 0.0065% of Total
+         .          .   2937:func startm(pp *p, spinning, lockheld bool) {
+         .          .   2938:	// Disable preemption.
+         .          .   2939:	//
+         .          .   2940:	// Every owned P must have an owner that will eventually stop it in the
+         .          .   2941:	// event of a GC stop request. startm takes transient ownership of a P
+         .          .   2942:	// (either from argument or pidleget below) and transfers ownership to
+         .          .   2943:	// a started M, which will be responsible for performing the stop.
+         .          .   2944:	//
+         .          .   2945:	// Preemption must be disabled during this transient ownership,
+         .          .   2946:	// otherwise the P this is running on may enter GC stop while still
+         .          .   2947:	// holding the transient P, leaving that P in limbo and deadlocking the
+         .          .   2948:	// STW.
+         .          .   2949:	//
+         .          .   2950:	// Callers passing a non-nil P must already be in non-preemptible
+         .          .   2951:	// context, otherwise such preemption could occur on function entry to
+         .          .   2952:	// startm. Callers passing a nil P may be preemptible, so we must
+         .          .   2953:	// disable preemption before acquiring a P from pidleget below.
+         .          .   2954:	mp := acquirem()
+         .          .   2955:	if !lockheld {
+         .          .   2956:		lock(&sched.lock)
+         .          .   2957:	}
+         .          .   2958:	if pp == nil {
+         .          .   2959:		if spinning {
+         .          .   2960:			// TODO(prattmic): All remaining calls to this function
+         .          .   2961:			// with _p_ == nil could be cleaned up to find a P
+         .          .   2962:			// before calling startm.
+         .          .   2963:			throw("startm: P required for spinning=true")
+         .          .   2964:		}
+         .          .   2965:		pp, _ = pidleget(0)
+         .          .   2966:		if pp == nil {
+         .          .   2967:			if !lockheld {
+         .          .   2968:				unlock(&sched.lock)
+         .          .   2969:			}
+         .          .   2970:			releasem(mp)
+         .          .   2971:			return
+         .          .   2972:		}
+         .          .   2973:	}
+         .          .   2974:	nmp := mget()
+         .          .   2975:	if nmp == nil {
+         .          .   2976:		// No M is available, we must drop sched.lock and call newm.
+         .          .   2977:		// However, we already own a P to assign to the M.
+         .          .   2978:		//
+         .          .   2979:		// Once sched.lock is released, another G (e.g., in a syscall),
+         .          .   2980:		// could find no idle P while checkdead finds a runnable G but
+         .          .   2981:		// no running M's because this new M hasn't started yet, thus
+         .          .   2982:		// throwing in an apparent deadlock.
+         .          .   2983:		// This apparent deadlock is possible when startm is called
+         .          .   2984:		// from sysmon, which doesn't count as a running M.
+         .          .   2985:		//
+         .          .   2986:		// Avoid this situation by pre-allocating the ID for the new M,
+         .          .   2987:		// thus marking it as 'running' before we drop sched.lock. This
+         .          .   2988:		// new M will eventually run the scheduler to execute any
+         .          .   2989:		// queued G's.
+         .          .   2990:		id := mReserveID()
+         .          .   2991:		unlock(&sched.lock)
+         .          .   2992:
+         .          .   2993:		var fn func()
+         .          .   2994:		if spinning {
+         .          .   2995:			// The caller incremented nmspinning, so set m.spinning in the new M.
+         .          .   2996:			fn = mspinning
+         .          .   2997:		}
+         .     1.50MB   2998:		newm(fn, pp, id)
+         .          .   2999:
+         .          .   3000:		if lockheld {
+         .          .   3001:			lock(&sched.lock)
+         .          .   3002:		}
+         .          .   3003:		// Ownership transfer of pp committed by start in newm.
+ROUTINE ======================== runtime.unique_runtime_registerUniqueMapCleanup.func2 in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/mgc.go
+         0        1MB (flat, cum) 0.0043% of Total
+         .          .   1794:	go func(cleanup func()) {
+         .          .   1795:		for {
+         .          .   1796:			<-uniqueMapCleanup
+         .        1MB   1797:			cleanup()
+         .          .   1798:		}
+         .          .   1799:	}(f)
+         .          .   1800:}
+         .          .   1801:
+         .          .   1802:func clearpools() {
+ROUTINE ======================== runtime.wakep in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/proc.go
+         0     1.50MB (flat, cum) 0.0065% of Total
+         .          .   3114:func wakep() {
+         .          .   3115:	// Be conservative about spinning threads, only start one if none exist
+         .          .   3116:	// already.
+         .          .   3117:	if sched.nmspinning.Load() != 0 || !sched.nmspinning.CompareAndSwap(0, 1) {
+         .          .   3118:		return
+         .          .   3119:	}
+         .          .   3120:
+         .          .   3121:	// Disable preemption until ownership of pp transfers to the next M in
+         .          .   3122:	// startm. Otherwise preemption here would leave pp stuck waiting to
+         .          .   3123:	// enter _Pgcstop.
+         .          .   3124:	//
+         .          .   3125:	// See preemption comment on acquirem in startm for more details.
+         .          .   3126:	mp := acquirem()
+         .          .   3127:
+         .          .   3128:	var pp *p
+         .          .   3129:	lock(&sched.lock)
+         .          .   3130:	pp, _ = pidlegetSpinning(0)
+         .          .   3131:	if pp == nil {
+         .          .   3132:		if sched.nmspinning.Add(-1) < 0 {
+         .          .   3133:			throw("wakep: negative nmspinning")
+         .          .   3134:		}
+         .          .   3135:		unlock(&sched.lock)
+         .          .   3136:		releasem(mp)
+         .          .   3137:		return
+         .          .   3138:	}
+         .          .   3139:	// Since we always have a P, the race in the "No M is available"
+         .          .   3140:	// comment in startm doesn't apply during the small window between the
+         .          .   3141:	// unlock here and lock in startm. A checkdead in between will always
+         .          .   3142:	// see at least one running M (ours).
+         .          .   3143:	unlock(&sched.lock)
+         .          .   3144:
+         .     1.50MB   3145:	startm(pp, true, false)
+         .          .   3146:
+         .          .   3147:	releasem(mp)
+         .          .   3148:}
+         .          .   3149:
+         .          .   3150:// Stops execution of the current m that is locked to a g until the g is runnable again.
+ROUTINE ======================== runtime/pprof.(*profMap).lookup in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/pprof/map.go
+  513.12kB   513.12kB (flat, cum) 0.0022% of Total
+         .          .     28:func (m *profMap) lookup(stk []uint64, tag unsafe.Pointer) *profMapEntry {
+         .          .     29:	// Compute hash of (stk, tag).
+         .          .     30:	h := uintptr(0)
+         .          .     31:	for _, x := range stk {
+         .          .     32:		h = h<<8 | (h >> (8 * (unsafe.Sizeof(h) - 1)))
+         .          .     33:		h += uintptr(x) * 41
+         .          .     34:	}
+         .          .     35:	h = h<<8 | (h >> (8 * (unsafe.Sizeof(h) - 1)))
+         .          .     36:	h += uintptr(tag) * 41
+         .          .     37:
+         .          .     38:	// Find entry if present.
+         .          .     39:	var last *profMapEntry
+         .          .     40:Search:
+         .          .     41:	for e := m.hash[h]; e != nil; last, e = e, e.nextHash {
+         .          .     42:		if len(e.stk) != len(stk) || e.tag != tag {
+         .          .     43:			continue
+         .          .     44:		}
+         .          .     45:		for j := range stk {
+         .          .     46:			if e.stk[j] != uintptr(stk[j]) {
+         .          .     47:				continue Search
+         .          .     48:			}
+         .          .     49:		}
+         .          .     50:		// Move to front.
+         .          .     51:		if last != nil {
+         .          .     52:			last.nextHash = e.nextHash
+         .          .     53:			e.nextHash = m.hash[h]
+         .          .     54:			m.hash[h] = e
+         .          .     55:		}
+         .          .     56:		return e
+         .          .     57:	}
+         .          .     58:
+         .          .     59:	// Add new entry.
+         .          .     60:	if len(m.free) < 1 {
+         .          .     61:		m.free = make([]profMapEntry, 128)
+         .          .     62:	}
+         .          .     63:	e := &m.free[0]
+         .          .     64:	m.free = m.free[1:]
+         .          .     65:	e.nextHash = m.hash[h]
+         .          .     66:	e.tag = tag
+         .          .     67:
+         .          .     68:	if len(m.freeStk) < len(stk) {
+         .          .     69:		m.freeStk = make([]uintptr, 1024)
+         .          .     70:	}
+         .          .     71:	// Limit cap to prevent append from clobbering freeStk.
+         .          .     72:	e.stk = m.freeStk[:len(stk):len(stk)]
+         .          .     73:	m.freeStk = m.freeStk[len(stk):]
+         .          .     74:
+         .          .     75:	for j := range stk {
+         .          .     76:		e.stk[j] = uintptr(stk[j])
+         .          .     77:	}
+         .          .     78:	if m.hash == nil {
+         .          .     79:		m.hash = make(map[uintptr]*profMapEntry)
+         .          .     80:	}
+  513.12kB   513.12kB     81:	m.hash[h] = e
+         .          .     82:	if m.all == nil {
+         .          .     83:		m.all = e
+         .          .     84:		m.last = e
+         .          .     85:	} else {
+         .          .     86:		m.last.nextAll = e
+ROUTINE ======================== runtime/pprof.(*profileBuilder).addCPUData in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/pprof/proto.go
+         0   513.12kB (flat, cum) 0.0022% of Total
+         .          .    278:func (b *profileBuilder) addCPUData(data []uint64, tags []unsafe.Pointer) error {
+         .          .    279:	if !b.havePeriod {
+         .          .    280:		// first record is period
+         .          .    281:		if len(data) < 3 {
+         .          .    282:			return fmt.Errorf("truncated profile")
+         .          .    283:		}
+         .          .    284:		if data[0] != 3 || data[2] == 0 {
+         .          .    285:			return fmt.Errorf("malformed profile")
+         .          .    286:		}
+         .          .    287:		// data[2] is sampling rate in Hz. Convert to sampling
+         .          .    288:		// period in nanoseconds.
+         .          .    289:		b.period = 1e9 / int64(data[2])
+         .          .    290:		b.havePeriod = true
+         .          .    291:		data = data[3:]
+         .          .    292:		// Consume tag slot. Note that there isn't a meaningful tag
+         .          .    293:		// value for this record.
+         .          .    294:		tags = tags[1:]
+         .          .    295:	}
+         .          .    296:
+         .          .    297:	// Parse CPU samples from the profile.
+         .          .    298:	// Each sample is 3+n uint64s:
+         .          .    299:	//	data[0] = 3+n
+         .          .    300:	//	data[1] = time stamp (ignored)
+         .          .    301:	//	data[2] = count
+         .          .    302:	//	data[3:3+n] = stack
+         .          .    303:	// If the count is 0 and the stack has length 1,
+         .          .    304:	// that's an overflow record inserted by the runtime
+         .          .    305:	// to indicate that stack[0] samples were lost.
+         .          .    306:	// Otherwise the count is usually 1,
+         .          .    307:	// but in a few special cases like lost non-Go samples
+         .          .    308:	// there can be larger counts.
+         .          .    309:	// Because many samples with the same stack arrive,
+         .          .    310:	// we want to deduplicate immediately, which we do
+         .          .    311:	// using the b.m profMap.
+         .          .    312:	for len(data) > 0 {
+         .          .    313:		if len(data) < 3 || data[0] > uint64(len(data)) {
+         .          .    314:			return fmt.Errorf("truncated profile")
+         .          .    315:		}
+         .          .    316:		if data[0] < 3 || tags != nil && len(tags) < 1 {
+         .          .    317:			return fmt.Errorf("malformed profile")
+         .          .    318:		}
+         .          .    319:		if len(tags) < 1 {
+         .          .    320:			return fmt.Errorf("mismatched profile records and tags")
+         .          .    321:		}
+         .          .    322:		count := data[2]
+         .          .    323:		stk := data[3:data[0]]
+         .          .    324:		data = data[data[0]:]
+         .          .    325:		tag := tags[0]
+         .          .    326:		tags = tags[1:]
+         .          .    327:
+         .          .    328:		if count == 0 && len(stk) == 1 {
+         .          .    329:			// overflow record
+         .          .    330:			count = uint64(stk[0])
+         .          .    331:			stk = []uint64{
+         .          .    332:				// gentraceback guarantees that PCs in the
+         .          .    333:				// stack can be unconditionally decremented and
+         .          .    334:				// still be valid, so we must do the same.
+         .          .    335:				uint64(abi.FuncPCABIInternal(lostProfileEvent) + 1),
+         .          .    336:			}
+         .          .    337:		}
+         .   513.12kB    338:		b.m.lookup(stk, tag).count += int64(count)
+         .          .    339:	}
+         .          .    340:
+         .          .    341:	if len(tags) != 0 {
+         .          .    342:		return fmt.Errorf("mismatched profile records and tags")
+         .          .    343:	}
+ROUTINE ======================== runtime/pprof.(*profileBuilder).appendLocsForStack in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/pprof/proto.go
+         0     2.59MB (flat, cum) 0.011% of Total
+         .          .    403:func (b *profileBuilder) appendLocsForStack(locs []uint64, stk []uintptr) (newLocs []uint64) {
+         .          .    404:	b.deck.reset()
+         .          .    405:
+         .          .    406:	// The last frame might be truncated. Recover lost inline frames.
+         .          .    407:	origStk := stk
+         .          .    408:	stk = runtime_expandFinalInlineFrame(stk)
+         .          .    409:
+         .          .    410:	for len(stk) > 0 {
+         .          .    411:		addr := stk[0]
+         .          .    412:		if l, ok := b.locs[addr]; ok {
+         .          .    413:			// When generating code for an inlined function, the compiler adds
+         .          .    414:			// NOP instructions to the outermost function as a placeholder for
+         .          .    415:			// each layer of inlining. When the runtime generates tracebacks for
+         .          .    416:			// stacks that include inlined functions, it uses the addresses of
+         .          .    417:			// those NOPs as "fake" PCs on the stack as if they were regular
+         .          .    418:			// function call sites. But if a profiling signal arrives while the
+         .          .    419:			// CPU is executing one of those NOPs, its PC will show up as a leaf
+         .          .    420:			// in the profile with its own Location entry. So, always check
+         .          .    421:			// whether addr is a "fake" PC in the context of the current call
+         .          .    422:			// stack by trying to add it to the inlining deck before assuming
+         .          .    423:			// that the deck is complete.
+         .          .    424:			if len(b.deck.pcs) > 0 {
+         .          .    425:				if added := b.deck.tryAdd(addr, l.firstPCFrames, l.firstPCSymbolizeResult); added {
+         .          .    426:					stk = stk[1:]
+         .          .    427:					continue
+         .          .    428:				}
+         .          .    429:			}
+         .          .    430:
+         .          .    431:			// first record the location if there is any pending accumulated info.
+         .          .    432:			if id := b.emitLocation(); id > 0 {
+         .          .    433:				locs = append(locs, id)
+         .          .    434:			}
+         .          .    435:
+         .          .    436:			// then, record the cached location.
+         .          .    437:			locs = append(locs, l.id)
+         .          .    438:
+         .          .    439:			// Skip the matching pcs.
+         .          .    440:			//
+         .          .    441:			// Even if stk was truncated due to the stack depth
+         .          .    442:			// limit, expandFinalInlineFrame above has already
+         .          .    443:			// fixed the truncation, ensuring it is long enough.
+         .          .    444:			if len(l.pcs) > len(stk) {
+         .          .    445:				panic(fmt.Sprintf("stack too short to match cached location; stk = %#x, l.pcs = %#x, original stk = %#x", stk, l.pcs, origStk))
+         .          .    446:			}
+         .          .    447:			stk = stk[len(l.pcs):]
+         .          .    448:			continue
+         .          .    449:		}
+         .          .    450:
+         .          .    451:		frames, symbolizeResult := allFrames(addr)
+         .          .    452:		if len(frames) == 0 { // runtime.goexit.
+         .          .    453:			if id := b.emitLocation(); id > 0 {
+         .          .    454:				locs = append(locs, id)
+         .          .    455:			}
+         .          .    456:			stk = stk[1:]
+         .          .    457:			continue
+         .          .    458:		}
+         .          .    459:
+         .          .    460:		if added := b.deck.tryAdd(addr, frames, symbolizeResult); added {
+         .          .    461:			stk = stk[1:]
+         .          .    462:			continue
+         .          .    463:		}
+         .          .    464:		// add failed because this addr is not inlined with the
+         .          .    465:		// existing PCs in the deck. Flush the deck and retry handling
+         .          .    466:		// this pc.
+         .     2.59MB    467:		if id := b.emitLocation(); id > 0 {
+         .          .    468:			locs = append(locs, id)
+         .          .    469:		}
+         .          .    470:
+         .          .    471:		// check cache again - previous emitLocation added a new entry
+         .          .    472:		if l, ok := b.locs[addr]; ok {
+ROUTINE ======================== runtime/pprof.(*profileBuilder).build in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/pprof/proto.go
+         0     3.09MB (flat, cum) 0.013% of Total
+         .          .    348:func (b *profileBuilder) build() {
+         .          .    349:	b.end = time.Now()
+         .          .    350:
+         .          .    351:	b.pb.int64Opt(tagProfile_TimeNanos, b.start.UnixNano())
+         .          .    352:	if b.havePeriod { // must be CPU profile
+         .          .    353:		b.pbValueType(tagProfile_SampleType, "samples", "count")
+         .          .    354:		b.pbValueType(tagProfile_SampleType, "cpu", "nanoseconds")
+         .          .    355:		b.pb.int64Opt(tagProfile_DurationNanos, b.end.Sub(b.start).Nanoseconds())
+         .          .    356:		b.pbValueType(tagProfile_PeriodType, "cpu", "nanoseconds")
+         .          .    357:		b.pb.int64Opt(tagProfile_Period, b.period)
+         .          .    358:	}
+         .          .    359:
+         .          .    360:	values := []int64{0, 0}
+         .          .    361:	var locs []uint64
+         .          .    362:
+         .          .    363:	for e := b.m.all; e != nil; e = e.nextAll {
+         .          .    364:		values[0] = e.count
+         .          .    365:		values[1] = e.count * b.period
+         .          .    366:
+         .          .    367:		var labels func()
+         .          .    368:		if e.tag != nil {
+         .          .    369:			labels = func() {
+         .          .    370:				for _, lbl := range (*labelMap)(e.tag).list {
+         .          .    371:					b.pbLabel(tagSample_Label, lbl.key, lbl.value, 0)
+         .          .    372:				}
+         .          .    373:			}
+         .          .    374:		}
+         .          .    375:
+         .     2.59MB    376:		locs = b.appendLocsForStack(locs[:0], e.stk)
+         .          .    377:
+         .          .    378:		b.pbSample(values, locs, labels)
+         .          .    379:	}
+         .          .    380:
+         .          .    381:	for i, m := range b.mem {
+         .          .    382:		hasFunctions := m.funcs == lookupTried // lookupTried but not lookupFailed
+         .          .    383:		b.pbMapping(tagProfile_Mapping, uint64(i+1), uint64(m.start), uint64(m.end), m.offset, m.file, m.buildID, hasFunctions)
+         .          .    384:	}
+         .          .    385:
+         .          .    386:	// TODO: Anything for tagProfile_DropFrames?
+         .          .    387:	// TODO: Anything for tagProfile_KeepFrames?
+         .          .    388:
+         .   518.02kB    389:	b.pb.strings(tagProfile_StringTable, b.strings)
+         .          .    390:	b.zw.Write(b.pb.data)
+         .          .    391:	b.zw.Close()
+         .          .    392:}
+         .          .    393:
+         .          .    394:// appendLocsForStack appends the location IDs for the given stack trace to the given
+ROUTINE ======================== runtime/pprof.(*profileBuilder).emitLocation in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/pprof/proto.go
+  553.04kB     2.59MB (flat, cum) 0.011% of Total
+         .          .    586:func (b *profileBuilder) emitLocation() uint64 {
+         .          .    587:	if len(b.deck.pcs) == 0 {
+         .          .    588:		return 0
+         .          .    589:	}
+         .          .    590:	defer b.deck.reset()
+         .          .    591:
+         .          .    592:	addr := b.deck.pcs[0]
+         .          .    593:	firstFrame := b.deck.frames[0]
+         .          .    594:
+         .          .    595:	// We can't write out functions while in the middle of the
+         .          .    596:	// Location message, so record new functions we encounter and
+         .          .    597:	// write them out after the Location.
+         .          .    598:	type newFunc struct {
+         .          .    599:		id         uint64
+         .          .    600:		name, file string
+         .          .    601:		startLine  int64
+         .          .    602:	}
+         .          .    603:	newFuncs := make([]newFunc, 0, 8)
+         .          .    604:
+         .          .    605:	id := uint64(len(b.locs)) + 1
+  553.04kB   553.04kB    606:	b.locs[addr] = locInfo{
+         .          .    607:		id:                     id,
+         .          .    608:		pcs:                    append([]uintptr{}, b.deck.pcs...),
+         .          .    609:		firstPCSymbolizeResult: b.deck.firstPCSymbolizeResult,
+         .          .    610:		firstPCFrames:          append([]runtime.Frame{}, b.deck.frames[:b.deck.firstPCFrames]...),
+         .          .    611:	}
+         .          .    612:
+         .          .    613:	start := b.pb.startMessage()
+         .          .    614:	b.pb.uint64Opt(tagLocation_ID, id)
+         .          .    615:	b.pb.uint64Opt(tagLocation_Address, uint64(firstFrame.PC))
+         .          .    616:	for _, frame := range b.deck.frames {
+         .          .    617:		// Write out each line in frame expansion.
+         .          .    618:		funcName := runtime_FrameSymbolName(&frame)
+         .          .    619:		funcID := uint64(b.funcs[funcName])
+         .          .    620:		if funcID == 0 {
+         .          .    621:			funcID = uint64(len(b.funcs)) + 1
+         .          .    622:			b.funcs[funcName] = int(funcID)
+         .          .    623:			newFuncs = append(newFuncs, newFunc{
+         .          .    624:				id:        funcID,
+         .          .    625:				name:      funcName,
+         .          .    626:				file:      frame.File,
+         .          .    627:				startLine: int64(runtime_FrameStartLine(&frame)),
+         .          .    628:			})
+         .          .    629:		}
+         .          .    630:		b.pbLine(tagLocation_Line, funcID, int64(frame.Line))
+         .          .    631:	}
+         .          .    632:	for i := range b.mem {
+         .          .    633:		if b.mem[i].start <= addr && addr < b.mem[i].end || b.mem[i].fake {
+         .          .    634:			b.pb.uint64Opt(tagLocation_MappingID, uint64(i+1))
+         .          .    635:
+         .          .    636:			m := b.mem[i]
+         .          .    637:			m.funcs |= b.deck.symbolizeResult
+         .          .    638:			b.mem[i] = m
+         .          .    639:			break
+         .          .    640:		}
+         .          .    641:	}
+         .          .    642:	b.pb.endMessage(tagProfile_Location, start)
+         .          .    643:
+         .          .    644:	// Write out functions we found during frame expansion.
+         .          .    645:	for _, fn := range newFuncs {
+         .          .    646:		start := b.pb.startMessage()
+         .          .    647:		b.pb.uint64Opt(tagFunction_ID, fn.id)
+         .          .    648:		b.pb.int64Opt(tagFunction_Name, b.stringIndex(fn.name))
+         .          .    649:		b.pb.int64Opt(tagFunction_SystemName, b.stringIndex(fn.name))
+         .          .    650:		b.pb.int64Opt(tagFunction_Filename, b.stringIndex(fn.file))
+         .          .    651:		b.pb.int64Opt(tagFunction_StartLine, fn.startLine)
+         .          .    652:		b.pb.endMessage(tagProfile_Function, start)
+         .          .    653:	}
+         .          .    654:
+         .     2.05MB    655:	b.flush()
+         .          .    656:	return id
+         .          .    657:}
+         .          .    658:
+         .          .    659:var space = []byte(" ")
+         .          .    660:var newline = []byte("\n")
+ROUTINE ======================== runtime/pprof.(*profileBuilder).flush in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/pprof/proto.go
+         0     2.05MB (flat, cum) 0.0088% of Total
+         .          .    143:func (b *profileBuilder) flush() {
+         .          .    144:	const dataFlush = 4096
+         .          .    145:	if b.pb.nest == 0 && len(b.pb.data) > dataFlush {
+         .     2.05MB    146:		b.zw.Write(b.pb.data)
+         .          .    147:		b.pb.data = b.pb.data[:0]
+         .          .    148:	}
+         .          .    149:}
+         .          .    150:
+         .          .    151:// pbValueType encodes a ValueType message to b.pb.
+ROUTINE ======================== runtime/pprof.(*protobuf).string in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/pprof/protobuf.go
+  518.02kB   518.02kB (flat, cum) 0.0022% of Total
+         .          .     92:func (b *protobuf) string(tag int, x string) {
+         .          .     93:	b.length(tag, len(x))
+  518.02kB   518.02kB     94:	b.data = append(b.data, x...)
+         .          .     95:}
+         .          .     96:
+         .          .     97:func (b *protobuf) strings(tag int, x []string) {
+         .          .     98:	for _, s := range x {
+         .          .     99:		b.string(tag, s)
+ROUTINE ======================== runtime/pprof.(*protobuf).strings in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/pprof/protobuf.go
+         0   518.02kB (flat, cum) 0.0022% of Total
+         .          .     97:func (b *protobuf) strings(tag int, x []string) {
+         .          .     98:	for _, s := range x {
+         .   518.02kB     99:		b.string(tag, s)
+         .          .    100:	}
+         .          .    101:}
+         .          .    102:
+         .          .    103:func (b *protobuf) stringOpt(tag int, x string) {
+         .          .    104:	if x == "" {
+ROUTINE ======================== runtime/pprof.StartCPUProfile in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/pprof/pprof.go
+    1.16MB     1.16MB (flat, cum) 0.005% of Total
+         .          .    833:func StartCPUProfile(w io.Writer) error {
+         .          .    834:	// The runtime routines allow a variable profiling rate,
+         .          .    835:	// but in practice operating systems cannot trigger signals
+         .          .    836:	// at more than about 500 Hz, and our processing of the
+         .          .    837:	// signal is not cheap (mostly getting the stack trace).
+         .          .    838:	// 100 Hz is a reasonable choice: it is frequent enough to
+         .          .    839:	// produce useful data, rare enough not to bog down the
+         .          .    840:	// system, and a nice round number to make it easy to
+         .          .    841:	// convert sample counts to seconds. Instead of requiring
+         .          .    842:	// each client to specify the frequency, we hard code it.
+         .          .    843:	const hz = 100
+         .          .    844:
+         .          .    845:	cpu.Lock()
+         .          .    846:	defer cpu.Unlock()
+         .          .    847:	if cpu.done == nil {
+         .          .    848:		cpu.done = make(chan bool)
+         .          .    849:	}
+         .          .    850:	// Double-check.
+         .          .    851:	if cpu.profiling {
+         .          .    852:		return fmt.Errorf("cpu profiling already in use")
+         .          .    853:	}
+         .          .    854:	cpu.profiling = true
+    1.16MB     1.16MB    855:	runtime.SetCPUProfileRate(hz)
+         .          .    856:	go profileWriter(w)
+         .          .    857:	return nil
+         .          .    858:}
+         .          .    859:
+         .          .    860:// readProfile, provided by the runtime, returns the next chunk of
+ROUTINE ======================== runtime/pprof.profileWriter in /opt/homebrew/Cellar/go/1.24.3/libexec/src/runtime/pprof/pprof.go
+         0     3.60MB (flat, cum) 0.015% of Total
+         .          .    867:func profileWriter(w io.Writer) {
+         .          .    868:	b := newProfileBuilder(w)
+         .          .    869:	var err error
+         .          .    870:	for {
+         .          .    871:		time.Sleep(100 * time.Millisecond)
+         .          .    872:		data, tags, eof := readProfile()
+         .   513.12kB    873:		if e := b.addCPUData(data, tags); e != nil && err == nil {
+         .          .    874:			err = e
+         .          .    875:		}
+         .          .    876:		if eof {
+         .          .    877:			break
+         .          .    878:		}
+         .          .    879:	}
+         .          .    880:	if err != nil {
+         .          .    881:		// The runtime should never produce an invalid or truncated profile.
+         .          .    882:		// It drops records that can't fit into its log buffers.
+         .          .    883:		panic("runtime/pprof: converting profile: " + err.Error())
+         .          .    884:	}
+         .     3.09MB    885:	b.build()
+         .          .    886:	cpu.done <- true
+         .          .    887:}
+         .          .    888:
+         .          .    889:// StopCPUProfile stops the current CPU profile, if any.
+         .          .    890:// StopCPUProfile only returns after all the writes for the
+ROUTINE ======================== strings.NewReader in /opt/homebrew/Cellar/go/1.24.3/libexec/src/strings/reader.go
+      15MB       15MB (flat, cum) 0.065% of Total
+      15MB       15MB    160:func NewReader(s string) *Reader { return &Reader{s, 0, -1} }
+ROUTINE ======================== sync.(*Pool).Get in /opt/homebrew/Cellar/go/1.24.3/libexec/src/sync/pool.go
+         0    24.04MB (flat, cum)   0.1% of Total
+         .          .    131:func (p *Pool) Get() any {
+         .          .    132:	if race.Enabled {
+         .          .    133:		race.Disable()
+         .          .    134:	}
+         .    24.04MB    135:	l, pid := p.pin()
+         .          .    136:	x := l.private
+         .          .    137:	l.private = nil
+         .          .    138:	if x == nil {
+         .          .    139:		// Try to pop the head of the local shard. We prefer
+         .          .    140:		// the head over the tail for temporal locality of
+ROUTINE ======================== sync.(*Pool).pin in /opt/homebrew/Cellar/go/1.24.3/libexec/src/sync/pool.go
+         0    24.04MB (flat, cum)   0.1% of Total
+         .          .    202:func (p *Pool) pin() (*poolLocal, int) {
+         .          .    203:	// Check whether p is nil to get a panic.
+         .          .    204:	// Otherwise the nil dereference happens while the m is pinned,
+         .          .    205:	// causing a fatal error rather than a panic.
+         .          .    206:	if p == nil {
+         .          .    207:		panic("nil Pool")
+         .          .    208:	}
+         .          .    209:
+         .          .    210:	pid := runtime_procPin()
+         .          .    211:	// In pinSlow we store to local and then to localSize, here we load in opposite order.
+         .          .    212:	// Since we've disabled preemption, GC cannot happen in between.
+         .          .    213:	// Thus here we must observe local at least as large localSize.
+         .          .    214:	// We can observe a newer/larger local, it is fine (we must observe its zero-initialized-ness).
+         .          .    215:	s := runtime_LoadAcquintptr(&p.localSize) // load-acquire
+         .          .    216:	l := p.local                              // load-consume
+         .          .    217:	if uintptr(pid) < s {
+         .          .    218:		return indexLocal(l, pid), pid
+         .          .    219:	}
+         .    24.04MB    220:	return p.pinSlow()
+         .          .    221:}
+         .          .    222:
+         .          .    223:func (p *Pool) pinSlow() (*poolLocal, int) {
+         .          .    224:	// Retry under the mutex.
+         .          .    225:	// Can not lock the mutex while pinned.
+ROUTINE ======================== sync.(*Pool).pinSlow in /opt/homebrew/Cellar/go/1.24.3/libexec/src/sync/pool.go
+   24.04MB    24.04MB (flat, cum)   0.1% of Total
+         .          .    223:func (p *Pool) pinSlow() (*poolLocal, int) {
+         .          .    224:	// Retry under the mutex.
+         .          .    225:	// Can not lock the mutex while pinned.
+         .          .    226:	runtime_procUnpin()
+         .          .    227:	allPoolsMu.Lock()
+         .          .    228:	defer allPoolsMu.Unlock()
+         .          .    229:	pid := runtime_procPin()
+         .          .    230:	// poolCleanup won't be called while we are pinned.
+         .          .    231:	s := p.localSize
+         .          .    232:	l := p.local
+         .          .    233:	if uintptr(pid) < s {
+         .          .    234:		return indexLocal(l, pid), pid
+         .          .    235:	}
+         .          .    236:	if p.local == nil {
+     512kB      512kB    237:		allPools = append(allPools, p)
+         .          .    238:	}
+         .          .    239:	// If GOMAXPROCS changes between GCs, we re-allocate the array and lose the old one.
+         .          .    240:	size := runtime.GOMAXPROCS(0)
+   23.54MB    23.54MB    241:	local := make([]poolLocal, size)
+         .          .    242:	atomic.StorePointer(&p.local, unsafe.Pointer(&local[0])) // store-release
+         .          .    243:	runtime_StoreReluintptr(&p.localSize, uintptr(size))     // store-release
+         .          .    244:	return &local[pid], pid
+         .          .    245:}
+         .          .    246:
+ROUTINE ======================== testing.(*B).launch in /opt/homebrew/Cellar/go/1.24.3/libexec/src/testing/benchmark.go
+         0    21.91GB (flat, cum) 96.59% of Total
+         .          .    328:func (b *B) launch() {
+         .          .    329:	// Signal that we're done whether we return normally
+         .          .    330:	// or by FailNow's runtime.Goexit.
+         .          .    331:	defer func() {
+         .          .    332:		b.signal <- true
+         .          .    333:	}()
+         .          .    334:
+         .          .    335:	// b.Loop does its own ramp-up logic so we just need to run it once.
+         .          .    336:	// If b.loop.n is non zero, it means b.Loop has already run.
+         .          .    337:	if b.loop.n == 0 {
+         .          .    338:		// Run the benchmark for at least the specified amount of time.
+         .          .    339:		if b.benchTime.n > 0 {
+         .          .    340:			// We already ran a single iteration in run1.
+         .          .    341:			// If -benchtime=1x was requested, use that result.
+         .          .    342:			// See https://golang.org/issue/32051.
+         .          .    343:			if b.benchTime.n > 1 {
+         .          .    344:				b.runN(b.benchTime.n)
+         .          .    345:			}
+         .          .    346:		} else {
+         .          .    347:			d := b.benchTime.d
+         .          .    348:			for n := int64(1); !b.failed && b.duration < d && n < 1e9; {
+         .          .    349:				last := n
+         .          .    350:				// Predict required iterations.
+         .          .    351:				goalns := d.Nanoseconds()
+         .          .    352:				prevIters := int64(b.N)
+         .          .    353:				n = int64(predictN(goalns, prevIters, b.duration.Nanoseconds(), last))
+         .    21.91GB    354:				b.runN(int(n))
+         .          .    355:			}
+         .          .    356:		}
+         .          .    357:	}
+         .          .    358:	b.result = BenchmarkResult{b.N, b.duration, b.bytes, b.netAllocs, b.netBytes, b.extra}
+         .          .    359:}
+ROUTINE ======================== testing.(*B).run1.func1 in /opt/homebrew/Cellar/go/1.24.3/libexec/src/testing/benchmark.go
+         0   512.03kB (flat, cum) 0.0022% of Total
+         .          .    238:	go func() {
+         .          .    239:		// Signal that we're done whether we return normally
+         .          .    240:		// or by FailNow's runtime.Goexit.
+         .          .    241:		defer func() {
+         .          .    242:			b.signal <- true
+         .          .    243:		}()
+         .          .    244:
+         .   512.03kB    245:		b.runN(1)
+         .          .    246:	}()
+         .          .    247:	<-b.signal
+         .          .    248:	if b.failed {
+         .          .    249:		fmt.Fprintf(b.w, "%s--- FAIL: %s\n%s", b.chatty.prefix(), b.name, b.output)
+         .          .    250:		return false
+ROUTINE ======================== testing.(*B).runN in /opt/homebrew/Cellar/go/1.24.3/libexec/src/testing/benchmark.go
+         0    21.91GB (flat, cum) 96.59% of Total
+         .          .    197:func (b *B) runN(n int) {
+         .          .    198:	benchmarkLock.Lock()
+         .          .    199:	defer benchmarkLock.Unlock()
+         .          .    200:	ctx, cancelCtx := context.WithCancel(context.Background())
+         .          .    201:	defer func() {
+         .          .    202:		b.runCleanup(normalPanic)
+         .          .    203:		b.checkRaces()
+         .          .    204:	}()
+         .          .    205:	// Try to get a comparable environment for each run
+         .          .    206:	// by clearing garbage from previous runs.
+         .          .    207:	runtime.GC()
+         .          .    208:	b.resetRaces()
+         .          .    209:	b.N = n
+         .          .    210:	b.loop.n = 0
+         .          .    211:	b.loop.i = 0
+         .          .    212:	b.loop.done = false
+         .          .    213:	b.ctx = ctx
+         .          .    214:	b.cancelCtx = cancelCtx
+         .          .    215:
+         .          .    216:	b.parallelism = 1
+         .          .    217:	b.ResetTimer()
+         .          .    218:	b.StartTimer()
+         .    21.91GB    219:	b.benchFunc(b)
+         .          .    220:	b.StopTimer()
+         .          .    221:	b.previousN = n
+         .          .    222:	b.previousDuration = b.duration
+         .          .    223:
+         .          .    224:	if b.loop.n > 0 && !b.loop.done && !b.failed {
+ROUTINE ======================== testing.(*M).Run in /opt/homebrew/Cellar/go/1.24.3/libexec/src/testing/testing.go
+         0     1.16MB (flat, cum) 0.005% of Total
+         .          .   2039:func (m *M) Run() (code int) {
+         .          .   2040:	defer func() {
+         .          .   2041:		code = m.exitCode
+         .          .   2042:	}()
+         .          .   2043:
+         .          .   2044:	// Count the number of calls to m.Run.
+         .          .   2045:	// We only ever expected 1, but we didn't enforce that,
+         .          .   2046:	// and now there are tests in the wild that call m.Run multiple times.
+         .          .   2047:	// Sigh. go.dev/issue/23129.
+         .          .   2048:	m.numRun++
+         .          .   2049:
+         .          .   2050:	// TestMain may have already called flag.Parse.
+         .          .   2051:	if !flag.Parsed() {
+         .          .   2052:		flag.Parse()
+         .          .   2053:	}
+         .          .   2054:
+         .          .   2055:	if chatty.json {
+         .          .   2056:		// With -v=json, stdout and stderr are pointing to the same pipe,
+         .          .   2057:		// which is leading into test2json. In general, operating systems
+         .          .   2058:		// do a good job of ensuring that writes to the same pipe through
+         .          .   2059:		// different file descriptors are delivered whole, so that writing
+         .          .   2060:		// AAA to stdout and BBB to stderr simultaneously produces
+         .          .   2061:		// AAABBB or BBBAAA on the pipe, not something like AABBBA.
+         .          .   2062:		// However, the exception to this is when the pipe fills: in that
+         .          .   2063:		// case, Go's use of non-blocking I/O means that writing AAA
+         .          .   2064:		// or BBB might be split across multiple system calls, making it
+         .          .   2065:		// entirely possible to get output like AABBBA. The same problem
+         .          .   2066:		// happens inside the operating system kernel if we switch to
+         .          .   2067:		// blocking I/O on the pipe. This interleaved output can do things
+         .          .   2068:		// like print unrelated messages in the middle of a TestFoo line,
+         .          .   2069:		// which confuses test2json. Setting os.Stderr = os.Stdout will make
+         .          .   2070:		// them share a single pfd, which will hold a lock for each program
+         .          .   2071:		// write, preventing any interleaving.
+         .          .   2072:		//
+         .          .   2073:		// It might be nice to set Stderr = Stdout always, or perhaps if
+         .          .   2074:		// we can tell they are the same file, but for now -v=json is
+         .          .   2075:		// a very clear signal. Making the two files the same may cause
+         .          .   2076:		// surprises if programs close os.Stdout but expect to be able
+         .          .   2077:		// to continue to write to os.Stderr, but it's hard to see why a
+         .          .   2078:		// test would think it could take over global state that way.
+         .          .   2079:		//
+         .          .   2080:		// This fix only helps programs where the output is coming directly
+         .          .   2081:		// from Go code. It does not help programs in which a subprocess is
+         .          .   2082:		// writing to stderr or stdout at the same time that a Go test is writing output.
+         .          .   2083:		// It also does not help when the output is coming from the runtime,
+         .          .   2084:		// such as when using the print/println functions, since that code writes
+         .          .   2085:		// directly to fd 2 without any locking.
+         .          .   2086:		// We keep realStderr around to prevent fd 2 from being closed.
+         .          .   2087:		//
+         .          .   2088:		// See go.dev/issue/33419.
+         .          .   2089:		realStderr = os.Stderr
+         .          .   2090:		os.Stderr = os.Stdout
+         .          .   2091:	}
+         .          .   2092:
+         .          .   2093:	if *parallel < 1 {
+         .          .   2094:		fmt.Fprintln(os.Stderr, "testing: -parallel can only be given a positive integer")
+         .          .   2095:		flag.Usage()
+         .          .   2096:		m.exitCode = 2
+         .          .   2097:		return
+         .          .   2098:	}
+         .          .   2099:	if *matchFuzz != "" && *fuzzCacheDir == "" {
+         .          .   2100:		fmt.Fprintln(os.Stderr, "testing: -test.fuzzcachedir must be set if -test.fuzz is set")
+         .          .   2101:		flag.Usage()
+         .          .   2102:		m.exitCode = 2
+         .          .   2103:		return
+         .          .   2104:	}
+         .          .   2105:
+         .          .   2106:	if *matchList != "" {
+         .          .   2107:		listTests(m.deps.MatchString, m.tests, m.benchmarks, m.fuzzTargets, m.examples)
+         .          .   2108:		m.exitCode = 0
+         .          .   2109:		return
+         .          .   2110:	}
+         .          .   2111:
+         .          .   2112:	if *shuffle != "off" {
+         .          .   2113:		var n int64
+         .          .   2114:		var err error
+         .          .   2115:		if *shuffle == "on" {
+         .          .   2116:			n = time.Now().UnixNano()
+         .          .   2117:		} else {
+         .          .   2118:			n, err = strconv.ParseInt(*shuffle, 10, 64)
+         .          .   2119:			if err != nil {
+         .          .   2120:				fmt.Fprintln(os.Stderr, `testing: -shuffle should be "off", "on", or a valid integer:`, err)
+         .          .   2121:				m.exitCode = 2
+         .          .   2122:				return
+         .          .   2123:			}
+         .          .   2124:		}
+         .          .   2125:		fmt.Println("-test.shuffle", n)
+         .          .   2126:		rng := rand.New(rand.NewSource(n))
+         .          .   2127:		rng.Shuffle(len(m.tests), func(i, j int) { m.tests[i], m.tests[j] = m.tests[j], m.tests[i] })
+         .          .   2128:		rng.Shuffle(len(m.benchmarks), func(i, j int) { m.benchmarks[i], m.benchmarks[j] = m.benchmarks[j], m.benchmarks[i] })
+         .          .   2129:	}
+         .          .   2130:
+         .          .   2131:	parseCpuList()
+         .          .   2132:
+         .     1.16MB   2133:	m.before()
+         .          .   2134:	defer m.after()
+         .          .   2135:
+         .          .   2136:	// Run tests, examples, and benchmarks unless this is a fuzz worker process.
+         .          .   2137:	// Workers start after this is done by their parent process, and they should
+         .          .   2138:	// not repeat this work.
+ROUTINE ======================== testing.(*M).before in /opt/homebrew/Cellar/go/1.24.3/libexec/src/testing/testing.go
+         0     1.16MB (flat, cum) 0.005% of Total
+         .          .   2295:func (m *M) before() {
+         .          .   2296:	if *memProfileRate > 0 {
+         .          .   2297:		runtime.MemProfileRate = *memProfileRate
+         .          .   2298:	}
+         .          .   2299:	if *cpuProfile != "" {
+         .          .   2300:		f, err := os.Create(toOutputDir(*cpuProfile))
+         .          .   2301:		if err != nil {
+         .          .   2302:			fmt.Fprintf(os.Stderr, "testing: %s\n", err)
+         .          .   2303:			return
+         .          .   2304:		}
+         .     1.16MB   2305:		if err := m.deps.StartCPUProfile(f); err != nil {
+         .          .   2306:			fmt.Fprintf(os.Stderr, "testing: can't start cpu profile: %s\n", err)
+         .          .   2307:			f.Close()
+         .          .   2308:			return
+         .          .   2309:		}
+         .          .   2310:		// Could save f so after can call f.Close; not worth the effort.
+ROUTINE ======================== testing/internal/testdeps.TestDeps.StartCPUProfile in /opt/homebrew/Cellar/go/1.24.3/libexec/src/testing/internal/testdeps/deps.go
+         0     1.16MB (flat, cum) 0.005% of Total
+         .          .     50:func (TestDeps) StartCPUProfile(w io.Writer) error {
+         .     1.16MB     51:	return pprof.StartCPUProfile(w)
+         .          .     52:}
+         .          .     53:
+         .          .     54:func (TestDeps) StopCPUProfile() {
+         .          .     55:	pprof.StopCPUProfile()
+         .          .     56:}
+ROUTINE ======================== unique.addUniqueMap[go.shape.struct { net/netip.isV6 bool; net/netip.zoneV6 string }].func1 in /opt/homebrew/Cellar/go/1.24.3/libexec/src/unique/handle.go
+  512.01kB        1MB (flat, cum) 0.0043% of Total
+         .          .    131:		cleanupFuncs = append(cleanupFuncs, func() {
+         .          .    132:			// Delete all the entries whose weak references are nil and clean up
+         .          .    133:			// deleted entries.
+  512.01kB        1MB    134:			m.All()(func(key T, wp weak.Pointer[T]) bool {
+         .          .    135:				if wp.Value() == nil {
+         .          .    136:					m.CompareAndDelete(key, wp)
+         .          .    137:				}
+         .          .    138:				return true
+         .          .    139:			})
+ROUTINE ======================== unique.registerCleanup.func1 in /opt/homebrew/Cellar/go/1.24.3/libexec/src/unique/handle.go
+         0        1MB (flat, cum) 0.0043% of Total
+         .          .    151:	runtime_registerUniqueMapCleanup(func() {
+         .          .    152:		// Lock for cleanup.
+         .          .    153:		cleanupMu.Lock()
+         .          .    154:
+         .          .    155:		// Grab funcs to run.
+         .          .    156:		cleanupFuncsMu.Lock()
+         .          .    157:		cf := cleanupFuncs
+         .          .    158:		cleanupFuncsMu.Unlock()
+         .          .    159:
+         .          .    160:		// Run cleanup.
+         .          .    161:		for _, f := range cf {
+         .        1MB    162:			f()
+         .          .    163:		}
+         .          .    164:
+         .          .    165:		// Run cleanup notifications.
+         .          .    166:		for _, f := range cleanupNotify {
+         .          .    167:			f()

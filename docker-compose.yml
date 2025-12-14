@@ -1,0 +1,40 @@
+version: '3'
+
+services:
+  traefik:
+    image: traefik:v3.6.4
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--experimental.localplugins.ssi.modulename=github.com/username/traefik-plugin-ssi"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./:/plugins-local/src/github.com/username/traefik-plugin-ssi"
+    depends_on:
+      - web
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 4G
+        reservations:
+          cpus: "1"
+          memory: 2G
+
+  web:
+    image: nginx:alpine
+    volumes:
+      - ./tests/integration:/usr/share/nginx/html
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.web.entrypoints=web"
+      - "traefik.http.services.web.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.my-ssi.plugin.ssi.includeTimeoutSeconds=7200"
+      - "traefik.http.middlewares.my-ssi.plugin.ssi.maxConcurrency=20"
+      - "traefik.http.routers.web.middlewares=my-ssi"

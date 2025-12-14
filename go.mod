@@ -1,3 +1,3 @@
-module github.com/dtherhtun/ssi
+module github.com/username/traefik-plugin-ssi
 
-go 1.25.1
+go 1.24.3

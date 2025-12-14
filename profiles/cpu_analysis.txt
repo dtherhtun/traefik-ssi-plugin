@@ -1,0 +1,117 @@
+File: tests.test
+Type: cpu
+Time: 2025-12-14 22:12:48 +07
+Duration: 10.44s, Total samples = 13.05s (124.95%)
+Showing nodes accounting for 12.45s, 95.40% of 13.05s total
+Dropped 118 nodes (cum <= 0.07s)
+      flat  flat%   sum%        cum   cum%
+         0     0%     0%      5.86s 44.90%  runtime.systemstack
+         0     0%     0%      4.25s 32.57%  testing.(*B).launch
+         0     0%     0%      4.25s 32.57%  testing.(*B).runN
+     0.48s  3.68%  3.68%      3.66s 28.05%  github.com/username/traefik-plugin-ssi/ssi.(*Cache).Get
+     0.91s  6.97% 10.65%      3.18s 24.37%  internal/sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Load
+         0     0% 10.65%      3.18s 24.37%  sync.(*Map).Load (inline)
+         0     0% 10.65%      2.97s 22.76%  runtime.semawakeup
+     2.96s 22.68% 33.33%      2.96s 22.68%  runtime.pthread_cond_signal
+         0     0% 33.33%      2.88s 22.07%  runtime.notewakeup
+         0     0% 33.33%      2.83s 21.69%  runtime.wakep
+         0     0% 33.33%      2.80s 21.46%  runtime.startm
+         0     0% 33.33%      2.55s 19.54%  runtime.schedule
+         0     0% 33.33%      2.48s 19.00%  runtime.mcall
+         0     0% 33.33%      2.48s 19.00%  runtime.park_m
+         0     0% 33.33%      2.39s 18.31%  runtime.findRunnable
+     0.14s  1.07% 34.41%      2.12s 16.25%  github.com/username/traefik-plugin-ssi/tests.BenchmarkCache_GetHit
+         0     0% 34.41%      2.01s 15.40%  runtime.ready
+         0     0% 34.41%      1.81s 13.87%  runtime.semasleep
+     0.06s  0.46% 34.87%      1.74s 13.33%  github.com/username/traefik-plugin-ssi/tests.BenchmarkCache_GetMiss
+     1.64s 12.57% 47.43%      1.64s 12.57%  runtime.pthread_cond_wait
+         0     0% 47.43%      1.63s 12.49%  runtime.stopm
+         0     0% 47.43%      1.58s 12.11%  runtime.mPark (inline)
+     0.36s  2.76% 50.19%      1.58s 12.11%  runtime.nilinterhash
+         0     0% 50.19%      1.58s 12.11%  runtime.notesleep
+         0     0% 50.19%      1.28s  9.81%  runtime.send.goready.func1
+         0     0% 50.19%      1.27s  9.73%  runtime.startTheWorldWithSema
+         0     0% 50.19%      1.20s  9.20%  runtime.gcBgMarkWorker.func2
+     0.07s  0.54% 50.73%      1.20s  9.20%  runtime.gcDrain
+     1.20s  9.20% 59.92%      1.20s  9.20%  runtime.kevent
+         0     0% 59.92%      1.20s  9.20%  runtime.netpoll
+         0     0% 59.92%      1.18s  9.04%  runtime.gcStart.func4
+         0     0% 59.92%      1.16s  8.89%  runtime.gcDrainMarkWorkerDedicated (inline)
+     0.51s  3.91% 63.83%      1.10s  8.43%  runtime.typehash
+        1s  7.66% 71.49%         1s  7.66%  runtime.usleep
+         0     0% 71.49%      0.85s  6.51%  runtime.preemptM
+     0.85s  6.51% 78.01%      0.85s  6.51%  runtime.pthread_kill
+         0     0% 78.01%      0.85s  6.51%  runtime.signalM (inline)
+         0     0% 78.01%      0.80s  6.13%  runtime.preemptone
+         0     0% 78.01%      0.72s  5.52%  runtime.readyWithTime.goready.func1
+         0     0% 78.01%      0.71s  5.44%  runtime.(*gcWork).balance
+         0     0% 78.01%      0.69s  5.29%  runtime.(*gcControllerState).enlistWorker
+     0.02s  0.15% 78.16%      0.58s  4.44%  runtime.stealWork
+         0     0% 78.16%      0.56s  4.29%  runtime.runqgrab
+         0     0% 78.16%      0.56s  4.29%  runtime.runqsteal
+     0.12s  0.92% 79.08%      0.54s  4.14%  internal/sync.(*entry[go.shape.interface {},go.shape.interface {}]).lookup (inline)
+     0.53s  4.06% 83.14%      0.53s  4.06%  aeshashbody
+         0     0% 83.14%      0.50s  3.83%  runtime.lock (partial-inline)
+         0     0% 83.14%      0.50s  3.83%  runtime.lock2
+         0     0% 83.14%      0.50s  3.83%  runtime.lockWithRank (inline)
+         0     0% 83.14%      0.48s  3.68%  runtime.newproc.func1
+         0     0% 83.14%      0.45s  3.45%  runtime.gcBgMarkWorker
+         0     0% 83.14%      0.44s  3.37%  runtime.osyield (inline)
+     0.24s  1.84% 84.98%      0.42s  3.22%  runtime.efaceeq
+         0     0% 84.98%      0.42s  3.22%  runtime.newstack
+     0.38s  2.91% 87.89%      0.38s  2.91%  runtime.madvise
+     0.10s  0.77% 88.66%      0.38s  2.91%  runtime.scanobject
+         0     0% 88.66%      0.37s  2.84%  runtime.(*mheap).alloc.func1
+         0     0% 88.66%      0.37s  2.84%  runtime.(*mheap).allocSpan
+         0     0% 88.66%      0.37s  2.84%  runtime.morestack
+         0     0% 88.66%      0.35s  2.68%  runtime.gopreempt_m (inline)
+         0     0% 88.66%      0.35s  2.68%  runtime.goschedImpl
+         0     0% 88.66%      0.34s  2.61%  runtime.sysUsed (inline)
+         0     0% 88.66%      0.34s  2.61%  runtime.sysUsedOS (inline)
+     0.01s 0.077% 88.74%      0.25s  1.92%  github.com/username/traefik-plugin-ssi/ssi.(*StreamScanner).Scan
+         0     0% 88.74%      0.25s  1.92%  runtime.forEachPInternal
+         0     0% 88.74%      0.24s  1.84%  github.com/username/traefik-plugin-ssi/tests.BenchmarkParser_Scan
+         0     0% 88.74%      0.23s  1.76%  runtime.mallocgc
+     0.18s  1.38% 90.11%      0.21s  1.61%  runtime.typePointers.next
+     0.08s  0.61% 90.73%      0.18s  1.38%  runtime.strequal
+         0     0% 90.73%      0.17s  1.30%  runtime.gcMarkDone.forEachP.func5
+         0     0% 90.73%      0.17s  1.30%  runtime.notetsleep
+         0     0% 90.73%      0.17s  1.30%  runtime.notetsleep_internal
+     0.17s  1.30% 92.03%      0.17s  1.30%  runtime.pthread_cond_timedwait_relative_np
+         0     0% 92.03%      0.16s  1.23%  runtime.resetspinning
+     0.14s  1.07% 93.10%      0.14s  1.07%  internal/sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).init (inline)
+         0     0% 93.10%      0.13s     1%  regexp.(*Regexp).FindSubmatch
+         0     0% 93.10%      0.13s     1%  regexp.(*Regexp).backtrack
+         0     0% 93.10%      0.13s     1%  regexp.(*Regexp).doExecute
+         0     0% 93.10%      0.13s     1%  runtime.(*sweepLocked).sweep.(*mheap).freeSpan.func2
+         0     0% 93.10%      0.12s  0.92%  runtime.chansend
+         0     0% 93.10%      0.12s  0.92%  runtime.chansend1
+     0.12s  0.92% 94.02%      0.12s  0.92%  runtime.isDirectIface (inline)
+         0     0% 94.02%      0.12s  0.92%  runtime.unlock (partial-inline)
+         0     0% 94.02%      0.12s  0.92%  runtime.unlock2
+         0     0% 94.02%      0.12s  0.92%  runtime.unlockWithRank (inline)
+         0     0% 94.02%      0.11s  0.84%  github.com/username/traefik-plugin-ssi/ssi.(*Processor).Write
+     0.06s  0.46% 94.48%      0.11s  0.84%  regexp.(*Regexp).tryBacktrack
+         0     0% 94.48%      0.11s  0.84%  runtime.preemptall
+     0.10s  0.77% 95.25%      0.10s  0.77%  runtime.memequal
+         0     0% 95.25%      0.10s  0.77%  runtime.newobject
+         0     0% 95.25%      0.09s  0.69%  runtime.(*sweepLocked).sweep
+         0     0% 95.25%      0.09s  0.69%  runtime.unlock2Wake
+         0     0% 95.25%      0.08s  0.61%  github.com/username/traefik-plugin-ssi/tests.BenchmarkProcessor_WriteCached
+         0     0% 95.25%      0.08s  0.61%  runtime.(*mheap).freeSpan (inline)
+         0     0% 95.25%      0.08s  0.61%  runtime.bgsweep
+         0     0% 95.25%      0.08s  0.61%  runtime.gcMarkTermination.forEachP.func6
+         0     0% 95.25%      0.08s  0.61%  runtime.gcMarkTermination.func3
+         0     0% 95.25%      0.08s  0.61%  runtime.runSafePointFn
+         0     0% 95.25%      0.08s  0.61%  runtime.sweepone
+         0     0% 95.25%      0.08s  0.61%  runtime.unique_runtime_registerUniqueMapCleanup.func2
+         0     0% 95.25%      0.07s  0.54%  github.com/username/traefik-plugin-ssi/ssi.(*Processor).processQueue
+         0     0% 95.25%      0.07s  0.54%  github.com/username/traefik-plugin-ssi/tests.BenchmarkProcessor_Write
+         0     0% 95.25%      0.07s  0.54%  runtime.deductAssistCredit
+         0     0% 95.25%      0.07s  0.54%  runtime.gcAssistAlloc.func2
+         0     0% 95.25%      0.07s  0.54%  runtime.gcAssistAlloc1
+     0.01s 0.077% 95.33%      0.07s  0.54%  runtime.gcDrainN
+     0.01s 0.077% 95.40%      0.07s  0.54%  runtime.mallocgcSmallScanNoHeader
+         0     0% 95.40%      0.07s  0.54%  runtime.stopTheWorldWithSema
+         0     0% 95.40%      0.07s  0.54%  unique.addUniqueMap[go.shape.struct { net/netip.isV6 bool; net/netip.zoneV6 string }].func1
+         0     0% 95.40%      0.07s  0.54%  unique.registerCleanup.func1

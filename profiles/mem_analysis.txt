@@ -1,0 +1,34 @@
+File: tests.test
+Type: alloc_space
+Time: 2025-12-14 22:12:58 +07
+Showing nodes accounting for 17770.45MB, 98.37% of 18064.22MB total
+Dropped 47 nodes (cum <= 90.32MB)
+      flat  flat%   sum%        cum   cum%
+         0     0%     0% 17788.98MB 98.48%  testing.(*B).launch
+         0     0%     0% 17788.98MB 98.48%  testing.(*B).runN
+ 9210.42MB 50.99% 50.99% 10637.13MB 58.89%  github.com/username/traefik-plugin-ssi/ssi.(*StreamScanner).Scan
+         0     0% 50.99%  7985.87MB 44.21%  github.com/username/traefik-plugin-ssi/tests.BenchmarkParser_Scan
+ 1385.37MB  7.67% 58.66%  5648.04MB 31.27%  github.com/username/traefik-plugin-ssi/ssi.NewProcessor
+ 4262.67MB 23.60% 82.25%  4262.67MB 23.60%  bufio.NewWriterSize (inline)
+         0     0% 82.25%  3881.80MB 21.49%  github.com/username/traefik-plugin-ssi/tests.BenchmarkProcessor_WriteCached
+         0     0% 82.25%  3748.35MB 20.75%  github.com/username/traefik-plugin-ssi/tests.BenchmarkProcessor_Write
+      91MB   0.5% 82.76%  2742.27MB 15.18%  github.com/username/traefik-plugin-ssi/ssi.(*Processor).Write
+         0     0% 82.76%  2172.95MB 12.03%  github.com/username/traefik-plugin-ssi/tests.BenchmarkProcessor_LargePage
+  492.54MB  2.73% 85.48%  1426.71MB  7.90%  regexp.(*Regexp).FindSubmatch
+         0     0% 85.48%  1361.30MB  7.54%  net/http/httptest.NewRequest (inline)
+    8.50MB 0.047% 85.53%  1361.30MB  7.54%  net/http/httptest.NewRequestWithContext
+         0     0% 85.53%  1107.72MB  6.13%  bufio.NewReader (inline)
+ 1107.72MB  6.13% 91.66%  1107.72MB  6.13%  bufio.NewReaderSize (inline)
+  360.02MB  1.99% 93.66%   934.17MB  5.17%  regexp.(*Regexp).backtrack
+         0     0% 93.66%   934.17MB  5.17%  regexp.(*Regexp).doExecute
+  547.61MB  3.03% 96.69%   547.61MB  3.03%  regexp.(*bitState).reset
+         0     0% 96.69%   270.59MB  1.50%  bufio.(*Writer).Flush
+         0     0% 96.69%   270.59MB  1.50%  github.com/username/traefik-plugin-ssi/ssi.(*Processor).processQueue
+         0     0% 96.69%   270.59MB  1.50%  net/http/httptest.(*ResponseRecorder).Write
+         0     0% 96.69%   217.57MB  1.20%  net/http/httptest.(*ResponseRecorder).writeHeader
+         0     0% 96.69%   157.06MB  0.87%  net/http.ReadRequest
+   87.03MB  0.48% 97.17%   157.06MB  0.87%  net/http.readRequest
+  123.04MB  0.68% 97.85%   123.04MB  0.68%  net/http.Header.Clone (inline)
+         0     0% 97.85%   123.04MB  0.68%  net/http/httptest.(*ResponseRecorder).WriteHeader
+         0     0% 97.85%    94.53MB  0.52%  net/http.Header.Set (inline)
+   94.53MB  0.52% 98.37%    94.53MB  0.52%  net/textproto.MIMEHeader.Set (inline)
