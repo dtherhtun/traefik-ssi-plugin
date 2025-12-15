@@ -2,11 +2,11 @@ goos: darwin
 goarch: arm64
 pkg: github.com/username/traefik-plugin-ssi/tests
 cpu: Apple M3 Pro
-BenchmarkParser_Scan-12              	  903072	      1334 ns/op	    5409 B/op	      14 allocs/op
-BenchmarkCache_GetHit-12             	120965505	         9.891 ns/op	       0 B/op	       0 allocs/op
-BenchmarkCache_GetMiss-12            	203542242	         5.915 ns/op	       0 B/op	       0 allocs/op
-BenchmarkProcessor_Write-12          	  101757	     11609 ns/op	   36270 B/op	      71 allocs/op
-BenchmarkProcessor_WriteCached-12    	  105556	     11479 ns/op	   36273 B/op	      71 allocs/op
-BenchmarkProcessor_LargePage-12      	   34495	     34619 ns/op	   51654 B/op	     342 allocs/op
+BenchmarkParser_Scan-12              	  885618	      1354 ns/op	    5403 B/op	      14 allocs/op
+BenchmarkCache_GetHit-12             	32890904	        35.87 ns/op	       0 B/op	       0 allocs/op
+BenchmarkCache_GetMiss-12            	202076602	         5.906 ns/op	       0 B/op	       0 allocs/op
+BenchmarkProcessor_Write-12          	   86430	     13819 ns/op	   57972 B/op	      71 allocs/op
+BenchmarkProcessor_WriteCached-12    	   87927	     13466 ns/op	   57886 B/op	      71 allocs/op
+BenchmarkProcessor_LargePage-12      	   30651	     39336 ns/op	   73206 B/op	     342 allocs/op
 PASS
-ok  	github.com/username/traefik-plugin-ssi/tests	11.090s
+ok  	github.com/username/traefik-plugin-ssi/tests	9.723s

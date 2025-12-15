@@ -27,10 +27,14 @@ func (c *Cache) Get(key string) ([]byte, bool) {
 		return nil, false
 	}
 	item := val.(CacheItem)
-	// PERFORMANCE: Lazy expiration - no time.Now() check on Get()
-	// This eliminates expensive syscall from the hot path
-	// With 44 includes, this saves 88+ time.Now() calls per request
-	// Items are evicted lazily when Set() happens or TTL naturally expires
+
+	// Check expiration - this is necessary to avoid serving stale content
+	// The cost is worth it for correctness
+	if time.Now().After(item.Expiration) {
+		c.items.Delete(key)
+		return nil, false
+	}
+
 	return item.Content, true
 }
 

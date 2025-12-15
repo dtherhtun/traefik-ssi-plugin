@@ -1,1 +1,1 @@
-BenchmarkProcessor_LargePage-12    	   36098	     32774 ns/op	   51014 B/op	     342 allocs/op
+BenchmarkProcessor_LargePage-12    	   34615	     35922 ns/op	   72148 B/op	     342 allocs/op

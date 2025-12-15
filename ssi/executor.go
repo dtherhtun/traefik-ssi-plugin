@@ -71,12 +71,16 @@ func (p *Processor) Write(chunk []byte) (int, error) {
 				p.queue <- cached
 			} else {
 				// Not cached, go async
+				// Acquire semaphore before spawning goroutine to reduce overhead
+				// when at max concurrency
+				p.concurrencySem <- struct{}{}
+
 				resultChan := make(chan []byte, 1)
 				p.queue <- resultChan
 
 				// Launch worker
 				go func(inc *Include, rChan chan []byte) {
-					p.concurrencySem <- struct{}{}
+					//p.concurrencySem <- struct{}{}
 					defer func() { <-p.concurrencySem }()
 
 					data, err := p.fetcher.Fetch(p.req, inc.Path)
@@ -116,9 +120,9 @@ func (p *Processor) processQueue() {
 		case []byte:
 			p.bufferedRw.Write(v)
 		case chan []byte:
-			// Only flush if buffer has content to avoid unnecessary syscalls
-			// This ensures previous content reaches the client while we wait for network I/O
-			if p.bufferedRw.Buffered() > 0 {
+			// Only flush if buffer has significant content (>8KB) to avoid unnecessary syscalls
+			// This reduces flush frequency while still getting data to client reasonably quickly
+			if p.bufferedRw.Buffered() > 8192 {
 				p.bufferedRw.Flush()
 			}
 
